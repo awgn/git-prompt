@@ -2,7 +2,7 @@
 -- 
 -- Add the following line to ~/.bashrc
 --
--- export PS1='\u@\h \[\033[1;32m\]\w\[\033[0m\]$(/usr/local/bin/gitprompt)$ '
+-- export PS1='\u@\h \[\033[1;32m\]$(short-path)[\033[0m\]$(gitprompt)$ '
 
 import System.Process
 import Data.List
