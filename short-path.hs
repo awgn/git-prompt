@@ -14,9 +14,9 @@ main = do
        putStr $ shorten path 
 
 shorten :: FilePath -> FilePath
-shorten xs | length xs < (gl + gr + 1) = xs
+shorten xs | len < (gl + gr + 1) = xs
            | otherwise = take gl xs ++ "..." ++ drop (len - gr) xs
            where len = length xs
-                 gl = 10
-                 gr = 30
+                 gl  = 10
+                 gr  = 30
 
