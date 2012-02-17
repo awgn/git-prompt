@@ -34,10 +34,9 @@ main = do
        getArgs >>= dispatch
 
 dispatch :: [String] -> IO ()
-dispatch []       =  putStr "()"
 dispatch ["git"]  =  gitPrompt >>= putStr
 dispatch ["path"] =  pathPrompt >>= putStr
-
+dispatch _        =  error "[git] [path]" 
 
 gitPrompt :: IO String
 gitPrompt = do 
