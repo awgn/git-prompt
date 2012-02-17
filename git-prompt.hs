@@ -41,11 +41,9 @@ dispatch ["path"] =  pathPrompt >>= putStr
 
 gitPrompt :: IO String
 gitPrompt = do 
-            xs <- readProcessWithExitCode "git" ["status"] []
-            let ls = lines $ snd' xs
+            ls <- ((readProcessWithExitCode "git" ["status"] []) >>= (\(_,xs,_) -> return (lines xs)))
             return $ compose' (gitBranch ls) (gitIcon ls) 
-            where snd' ( _, xs, _ ) = xs
-                  compose' [] _ = ""
+            where compose' [] _ = ""
                   compose' b  i = "[" ++ b ++ i ++ "]"
 
 gitBranch :: [String] -> String
