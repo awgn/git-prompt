@@ -38,18 +38,30 @@ dispatch ["git"]  =  gitPrompt >>= putStr
 dispatch ["path"] =  pathPrompt >>= putStr
 dispatch _        =  error "[git] [path]" 
 
+
 gitPrompt :: IO String
 gitPrompt = do 
-            ls <- ((readProcessWithExitCode "git" ["status"] []) >>= (\(_,xs,_) -> return (lines xs)))
-            return $ compose' (gitBranch ls) (gitIcon ls) 
-            where compose' [] [] = ""
-                  compose' b  i = "[" ++ b ++ i ++ "]"
+            status <- gitStatus
+            brev <- if (null (gitBranch status)) then gitRev else (return $ gitBranch status)
+            return $ compose' (brev) (gitIcon status) 
+                where compose' [] [] = ""
+                      compose' b  i = "[" ++ b ++ i ++ "]"
+
+
+gitStatus :: IO [String]
+gitStatus = readProcessWithExitCode "git" ["status"] [] >>= \(_, xs, _) -> return (lines xs)
+
+
+gitRev :: IO String
+gitRev = readProcessWithExitCode "git" ["name-rev", "--name-only", "HEAD"] [] >>= \(_,xs,_) -> return (init xs) 
+
 
 gitBranch :: [String] -> String
 gitBranch [] = ""
 gitBranch (x:xs) |  "# On branch" `isPrefixOf` x = (words x) !! 3
                  | otherwise = gitBranch xs
         
+
 gitIcon :: [String] -> String
 gitIcon [] = ""
 gitIcon (x:xs) | "# Changes to be committed" `isPrefixOf` x = "!"
@@ -57,11 +69,13 @@ gitIcon (x:xs) | "# Changes to be committed" `isPrefixOf` x = "!"
                | "# Untracked files:"        `isPrefixOf` x = "+"
                | otherwise = gitIcon xs
 
+
 pathPrompt :: IO String
 pathPrompt = do 
             path <- getCurrentDirectory
             home <- getEnv "HOME"
             return $ shorten (setHome home path) 
+       
 
 shorten :: FilePath -> FilePath
 shorten xs | len < (gl + gr + 1) = xs
@@ -69,6 +83,7 @@ shorten xs | len < (gl + gr + 1) = xs
            where len = length xs
                  gl  = 10
                  gr  = 30
+
 
 setHome :: FilePath -> FilePath -> FilePath
 setHome xs ps | xs `isPrefixOf` ps = '~' : (snd $ splitAt (length xs) ps)  
