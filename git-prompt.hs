@@ -42,7 +42,7 @@ gitPrompt :: IO String
 gitPrompt = do 
             ls <- ((readProcessWithExitCode "git" ["status"] []) >>= (\(_,xs,_) -> return (lines xs)))
             return $ compose' (gitBranch ls) (gitIcon ls) 
-            where compose' [] _ = ""
+            where compose' [] [] = ""
                   compose' b  i = "[" ++ b ++ i ++ "]"
 
 gitBranch :: [String] -> String
