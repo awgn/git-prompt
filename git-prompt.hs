@@ -23,10 +23,7 @@
 
 import System.Process
 import System.Directory
-import System(getArgs)
 import System.Environment
-import System.FilePath.Posix
-import Control.Monad
 import Data.List
 
 main :: IO ()
@@ -42,9 +39,12 @@ dispatch _        =  error "[git] [path]"
 gitPrompt :: IO String
 gitPrompt = do 
             status <- gitStatus
-            brev <- if (null (gitBranch status)) then gitRev else (return $ gitBranch status)
+            brev <- case (gitBranch status) of 
+                         Just "" -> gitRev 
+                         Just xs -> return xs
+                         Nothing -> return ""
             return $ compose' (brev) (gitIcon status) 
-                where compose' [] [] = ""
+                where compose' [] _ = ""
                       compose' b  i = "[" ++ b ++ i ++ "]"
 
 
@@ -56,11 +56,14 @@ gitRev :: IO String
 gitRev = readProcessWithExitCode "git" ["name-rev", "--name-only", "HEAD"] [] >>= \(_,xs,_) -> return (init xs) 
 
 
-gitBranch :: [String] -> String
-gitBranch [] = ""
-gitBranch (x:xs) |  "# On branch" `isPrefixOf` x = (words x) !! 3
-                 | otherwise = gitBranch xs
-        
+gitBranch :: [String] -> Maybe String
+gitBranch xs = case xs of
+                    [] -> Nothing
+                    _  -> Just $ gitBranch' xs
+               where gitBranch' [] = ""
+                     gitBranch' (y:ys) | "# On branch" `isPrefixOf` y = (words y) !! 3
+                                       | otherwise =  gitBranch' ys 
+
 
 gitIcon :: [String] -> String
 gitIcon [] = ""
