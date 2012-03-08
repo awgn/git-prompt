@@ -19,7 +19,7 @@
 -- 
 -- Add the following line to ~/.bashrc
 --
--- export PS1='\u@\h \[\033[1;32m\]$(git-prompt path)[\033[0m\]$(git-prompt git)$ '
+-- export PS1='\u@\h \[\033[1;32m\]$(git-prompt path)\[\033[0m\]$(git-prompt git)$ '
 
 import System.Process
 import System.Directory
