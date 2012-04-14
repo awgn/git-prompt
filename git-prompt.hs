@@ -19,6 +19,7 @@
 -- 
 -- Add the following line to ~/.bashrc
 --
+-- export COLUMNS
 -- export PS1='\u@\h \[\033[1;32m\]$(git-prompt path)\[\033[0m\]$(git-prompt git)$ '
 
 import System.Process
@@ -77,15 +78,17 @@ pathPrompt :: IO String
 pathPrompt = do 
             path <- getCurrentDirectory
             home <- getEnv "HOME"
-            return $ shorten (setHome home path) 
+            columns <- getEnv "COLUMNS" 
+            return $ shorten (read columns) (setHome home path) 
        
 
-shorten :: FilePath -> FilePath
-shorten xs | len < (gl + gr + 1) = xs
-           | otherwise = take gl xs ++ "..." ++ drop (len - gr) xs
+shorten :: Int -> FilePath -> FilePath
+shorten col xs | len < (gl + 3 + gr) = xs
+               | otherwise = take gl xs ++ "..." ++ drop (len - gr) xs
            where len = length xs
+                 ml  = col `div` 2
                  gl  = 10
-                 gr  = 30
+                 gr  = ml - gl - 20  
 
 
 setHome :: FilePath -> FilePath -> FilePath
