@@ -1,5 +1,5 @@
 #!/bin/sh
 set -e -x
 
-/usr/bin/ghc -O -Wall git-prompt.hs -o /usr/local/bin/git-prompt
+/usr/bin/ghc -O2 -Wall git-prompt.hs -o /usr/local/bin/git-prompt
 

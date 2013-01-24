@@ -25,6 +25,8 @@
 import System.Process
 import System.Directory
 import System.Environment
+import Control.Monad
+import Control.Applicative
 import Data.List
 
 main :: IO ()
@@ -75,12 +77,8 @@ gitIcon (x:xs) | "# Changes to be committed" `isPrefixOf` x = "!"
 
 
 pathPrompt :: IO String
-pathPrompt = do 
-            path <- getCurrentDirectory
-            home <- getEnv "HOME"
-            columns <- getEnv "COLUMNS" 
-            return $ shorten (read columns) (setHome home path) 
-       
+pathPrompt = liftM2 shorten (read <$> getEnv "COLUMNS") (liftM2 setHome (getEnv "HOME") getCurrentDirectory)
+
 
 shorten :: Int -> FilePath -> FilePath
 shorten col xs | len < (gl + 3 + gr) = xs
