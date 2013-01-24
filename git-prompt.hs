@@ -25,7 +25,6 @@
 import System.Process
 import System.Directory
 import System.Environment
-import Control.Monad
 import Control.Applicative
 import Data.List
 
@@ -52,11 +51,13 @@ gitPrompt = do
 
 
 gitStatus :: IO [String]
-gitStatus = readProcessWithExitCode "git" ["status"] [] >>= \(_, xs, _) -> return (lines xs)
+gitStatus = readProcessWithExitCode "git" ["status"] [] >>= \(_,x,_) -> 
+                return (lines x)
 
 
 gitRev :: IO String
-gitRev = readProcessWithExitCode "git" ["name-rev", "--name-only", "HEAD"] [] >>= \(_,xs,_) -> return (init xs) 
+gitRev = readProcessWithExitCode "git" ["name-rev", "--name-only", "HEAD"] [] >>= \(_,x,_) -> 
+            return (init x) 
 
 
 gitBranch :: [String] -> Maybe String
@@ -77,7 +78,7 @@ gitIcon (x:xs) | "# Changes to be committed" `isPrefixOf` x = "!"
 
 
 pathPrompt :: IO String
-pathPrompt = liftM2 shorten (read <$> getEnv "COLUMNS") (liftM2 setHome (getEnv "HOME") getCurrentDirectory)
+pathPrompt = shorten <$> (read <$> getEnv "COLUMNS") <*> (setHome <$> (getEnv "HOME") <*> getCurrentDirectory)
 
 
 shorten :: Int -> FilePath -> FilePath
