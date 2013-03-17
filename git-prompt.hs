@@ -41,10 +41,12 @@ dispatch ["path"] =  pathPrompt >>= putStr
 dispatch _        =  error "[git] [path]" 
 
 
-magenta, blue, red, bold, reset :: String
+magenta, blue, red, green, cyan, bold, reset :: String
 
 magenta = setSGRCode [SetColor Foreground Vivid Magenta]
 blue    = setSGRCode [SetColor Foreground Vivid Blue]
+green   = setSGRCode [SetColor Foreground Vivid Green]
+cyan    = setSGRCode [SetColor Foreground Vivid Cyan]
 red     = setSGRCode [SetColor Foreground Vivid Red]
 bold    = setSGRCode [SetConsoleIntensity BoldIntensity]
 reset   = setSGRCode []
@@ -52,61 +54,45 @@ reset   = setSGRCode []
 
 gitPrompt :: IO String
 gitPrompt = do 
-            status <- gitStatus
-            brev <- case (gitBranch status) of 
-                         Just "" -> gitRev 
-                         Just xs -> return xs
-                         Nothing -> return ""
-            return $ compose' (brev) (gitIcon status) 
-                where compose' [] _ = ""
-                      compose' b  i = "[" ++ b ++ i ++ "]"
+            icon  <- gitStatusIcon
+            name  <- gitNameRev   
+            ahead <- gitAheadIcon
+            let prompt = name ++ ahead ++ icon
+            return $ if (null prompt) then "" else "[" ++ prompt ++ "]" 
+
+
+gitStatusIcon :: IO String
+gitStatusIcon = gitStatus >>= \s -> do
+                    let icon = concat . nub $ map gitIcon s   
+                    return $ if (null icon) then "" else ("|" ++ icon)  
+
+
+gitIcon :: String -> String
+gitIcon (' ':'M':_) =  bold ++ blue  ++ "×" ++ reset
+gitIcon (_  :'D':_) =  bold ++ red   ++ "—" ++ reset
+gitIcon ('M':' ':_) =  bold ++ blue  ++ "٭" ++ reset
+gitIcon ('A':'M':_) =  bold ++ cyan  ++ "٭" ++ reset
+gitIcon ('A':_  :_) =  bold ++ green ++ "٭" ++ reset
+gitIcon ('D':_  :_) =  bold ++ red   ++ "¬" ++ reset
+gitIcon ('R':_  :_) =  bold ++ cyan  ++ "ʀ" ++ reset
+gitIcon ('C':_  :_) =  bold ++ cyan  ++ "‡" ++ reset
+gitIcon ('?':'?':_) =  "…"
+gitIcon  _          =  ""
 
 
 gitStatus :: IO [String]
-gitStatus = readProcessWithExitCode "git" ["status"] [] >>= \(_,x,_) -> 
+gitStatus = readProcessWithExitCode "git" ["status", "--porcelain"] [] >>= \(_,x,_) -> 
                 return (lines x)
 
 
-gitRev :: IO String
-gitRev = readProcessWithExitCode "git" ["name-rev", "--name-only", "HEAD"] [] >>= \(_,x,_) -> 
-            return (init x) 
+gitNameRev :: IO String
+gitNameRev = readProcessWithExitCode "git" ["name-rev", "--name-only", "HEAD"] [] >>= \(_,x,_) -> 
+                return $ if (null x) then "" else (magenta ++ bold ++ init x ++ reset) 
 
 
-gitBranch :: [String] -> Maybe String
-gitBranch xs = case xs of
-                    [] -> Nothing
-                    _  -> Just $ gitBranch' xs ++ if (isBranchAhead xs) then (bold ++ "+" ++ reset) else ""
-               where gitBranch' [] = ""
-                     gitBranch' (y:ys) | "# On branch" `isPrefixOf` y = magenta ++ bold ++ (words y) !! 3 ++ reset
-                                       | otherwise =  gitBranch' ys 
-
-
-isBranchAhead :: [String] -> Bool
-isBranchAhead = any (isPrefixOf "# Your branch is ahead")
-
-
-hasUntrackedFiles :: [String] -> Bool
-hasUntrackedFiles = any (isPrefixOf "# Untracked files:") 
-
-
-hasChangesToBeCommitted :: [String] -> Bool
-hasChangesToBeCommitted =  any (isPrefixOf "# Changes to be committed")
-
-
-hasChangesNotStaged :: [String] -> Bool
-hasChangesNotStaged = any (isPrefixOf "# Changes not staged")
-
-
-gitIcon :: [String] -> String
-gitIcon xs = gitIcon' (hasUntrackedFiles xs) (hasChangesNotStaged xs) (hasChangesToBeCommitted xs)
-             where  gitIcon' False  False  False = ""  
-                    gitIcon' True   False  False = "|…" 
-                    gitIcon' False  True   False = "|" ++ bold ++ blue ++ "×" ++ reset  
-                    gitIcon' True   True   False = "|" ++ bold ++ blue ++ "×" ++ reset ++ "…" 
-                    gitIcon' False  False  True  = "|" ++ bold ++ red  ++ "٭" ++ reset  
-                    gitIcon' True   False  True  = "|" ++ bold ++ red  ++ "٭" ++ reset ++ "…" 
-                    gitIcon' False  True   True  = "|" ++ bold ++ red  ++ "¡" ++ reset 
-                    gitIcon' True   True   True  = "|" ++ bold ++ red  ++ "¡" ++ reset ++ "…"    
+gitAheadIcon :: IO String
+gitAheadIcon = readProcessWithExitCode "git" ["rev-list", "-n", "1", "HEAD@{upstream}..HEAD"] [] >>= \(_,x,_) ->
+                    return $ if (not . null $ lines x) then (bold ++ "↑" ++ reset) else "" 
 
 
 pathPrompt :: IO String
