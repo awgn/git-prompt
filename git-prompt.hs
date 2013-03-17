@@ -75,10 +75,14 @@ gitRev = readProcessWithExitCode "git" ["name-rev", "--name-only", "HEAD"] [] >>
 gitBranch :: [String] -> Maybe String
 gitBranch xs = case xs of
                     [] -> Nothing
-                    _  -> Just $ gitBranch' xs
+                    _  -> Just $ gitBranch' xs ++ if (isBranchAhead xs) then (bold ++ "+" ++ reset) else ""
                where gitBranch' [] = ""
                      gitBranch' (y:ys) | "# On branch" `isPrefixOf` y = magenta ++ bold ++ (words y) !! 3 ++ reset
                                        | otherwise =  gitBranch' ys 
+
+
+isBranchAhead :: [String] -> Bool
+isBranchAhead = any (isPrefixOf "# Your branch is ahead")
 
 
 hasUntrackedFiles :: [String] -> Bool
