@@ -25,6 +25,8 @@
 import System.Process
 import System.Directory
 import System.Environment
+import System.Console.ANSI
+
 import Control.Applicative
 import Data.List
 
@@ -32,10 +34,20 @@ main :: IO ()
 main = do
        getArgs >>= dispatch
 
+
 dispatch :: [String] -> IO ()
 dispatch ["git"]  =  gitPrompt >>= putStr
 dispatch ["path"] =  pathPrompt >>= putStr
 dispatch _        =  error "[git] [path]" 
+
+
+magenta, blue, red, bold, reset :: String
+
+magenta = setSGRCode [SetColor Foreground Vivid Magenta]
+blue    = setSGRCode [SetColor Foreground Vivid Blue]
+red     = setSGRCode [SetColor Foreground Vivid Red]
+bold    = setSGRCode [SetConsoleIntensity BoldIntensity]
+reset   = setSGRCode []
 
 
 gitPrompt :: IO String
@@ -47,7 +59,7 @@ gitPrompt = do
                          Nothing -> return ""
             return $ compose' (brev) (gitIcon status) 
                 where compose' [] _ = ""
-                      compose' b  i = "[" ++ b ++ i ++ "]"
+                      compose' b  i = "[" ++ b ++ "|" ++ i ++ "]"
 
 
 gitStatus :: IO [String]
@@ -65,15 +77,15 @@ gitBranch xs = case xs of
                     [] -> Nothing
                     _  -> Just $ gitBranch' xs
                where gitBranch' [] = ""
-                     gitBranch' (y:ys) | "# On branch" `isPrefixOf` y = (words y) !! 3
+                     gitBranch' (y:ys) | "# On branch" `isPrefixOf` y = magenta ++ bold ++ (words y) !! 3 ++ reset
                                        | otherwise =  gitBranch' ys 
 
 
 gitIcon :: [String] -> String
 gitIcon [] = ""
-gitIcon (x:xs) | "# Changes to be committed" `isPrefixOf` x = "!"
-               | "# Changes not staged"      `isPrefixOf` x = "*"
-               | "# Untracked files:"        `isPrefixOf` x = "+"
+gitIcon (x:xs) | "# Changes to be committed" `isPrefixOf` x = bold ++ red  ++ "!" ++ reset
+               | "# Changes not staged"      `isPrefixOf` x = bold ++ blue ++ "*" ++ reset
+               | "# Untracked files:"        `isPrefixOf` x = bold ++         "+" ++ reset
                | otherwise = gitIcon xs
 
 
@@ -93,3 +105,4 @@ shorten col xs | len < (gl + 3 + gr) = xs
 setHome :: FilePath -> FilePath -> FilePath
 setHome xs ps | xs `isPrefixOf` ps = '~' : (snd $ splitAt (length xs) ps)  
               | otherwise = ps 
+
