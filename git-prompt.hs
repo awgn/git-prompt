@@ -59,7 +59,7 @@ gitPrompt = do
                          Nothing -> return ""
             return $ compose' (brev) (gitIcon status) 
                 where compose' [] _ = ""
-                      compose' b  i = "[" ++ b ++ "|" ++ i ++ "]"
+                      compose' b  i = "[" ++ b ++ i ++ "]"
 
 
 gitStatus :: IO [String]
@@ -81,12 +81,28 @@ gitBranch xs = case xs of
                                        | otherwise =  gitBranch' ys 
 
 
+hasUntrackedFiles :: [String] -> Bool
+hasUntrackedFiles = any (isPrefixOf "# Untracked files:") 
+
+
+hasChangesToBeCommitted :: [String] -> Bool
+hasChangesToBeCommitted =  any (isPrefixOf "# Changes to be committed")
+
+
+hasChangesNotStaged :: [String] -> Bool
+hasChangesNotStaged = any (isPrefixOf "# Changes not staged")
+
+
 gitIcon :: [String] -> String
-gitIcon [] = ""
-gitIcon (x:xs) | "# Changes to be committed" `isPrefixOf` x = bold ++ red  ++ "∆" ++ reset
-               | "# Changes not staged"      `isPrefixOf` x = bold ++ blue ++ "×" ++ reset
-               | "# Untracked files:"        `isPrefixOf` x = bold ++         "+" ++ reset
-               | otherwise = gitIcon xs
+gitIcon xs = gitIcon' (hasUntrackedFiles xs) (hasChangesNotStaged xs) (hasChangesToBeCommitted xs)
+             where  gitIcon' False  False  False = ""  
+                    gitIcon' True   False  False = "|…" 
+                    gitIcon' False  True   False = "|" ++ bold ++ blue ++ "×" ++ reset  
+                    gitIcon' True   True   False = "|" ++ bold ++ blue ++ "×" ++ reset ++ "…" 
+                    gitIcon' False  False  True  = "|" ++ bold ++ red  ++ "٭" ++ reset  
+                    gitIcon' True   False  True  = "|" ++ bold ++ red  ++ "٭" ++ reset ++ "…" 
+                    gitIcon' False  True   True  = "|" ++ bold ++ red  ++ "¡" ++ reset 
+                    gitIcon' True   True   True  = "|" ++ bold ++ red  ++ "¡" ++ reset ++ "…"    
 
 
 pathPrompt :: IO String
