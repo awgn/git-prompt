@@ -83,8 +83,8 @@ gitBranch xs = case xs of
 
 gitIcon :: [String] -> String
 gitIcon [] = ""
-gitIcon (x:xs) | "# Changes to be committed" `isPrefixOf` x = bold ++ red  ++ "!" ++ reset
-               | "# Changes not staged"      `isPrefixOf` x = bold ++ blue ++ "*" ++ reset
+gitIcon (x:xs) | "# Changes to be committed" `isPrefixOf` x = bold ++ red  ++ "∆" ++ reset
+               | "# Changes not staged"      `isPrefixOf` x = bold ++ blue ++ "×" ++ reset
                | "# Untracked files:"        `isPrefixOf` x = bold ++         "+" ++ reset
                | otherwise = gitIcon xs
 
