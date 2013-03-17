@@ -20,7 +20,7 @@
 -- Add the following line to ~/.bashrc
 --
 -- export COLUMNS
--- export PS1='\u@\h \[\033[1;32m\]$(git-prompt path)\[\033[0m\]$(git-prompt git)$ '
+-- export PS1='\u@\h \[\033[1;32m\]$(git-prompt path)\[\033[0m\] $(git-prompt git)$ '
 
 import System.Process
 import System.Directory
@@ -29,6 +29,7 @@ import System.Console.ANSI
 
 import Control.Applicative
 import Data.List
+
 
 main :: IO ()
 main = do
@@ -41,11 +42,10 @@ dispatch ["path"] =  pathPrompt >>= putStr
 dispatch _        =  error "[git] [path]" 
 
 
-magenta, blue, red, green, cyan, bold, reset :: String
+magenta, blue, red, cyan, bold, reset :: String
 
 magenta = setSGRCode [SetColor Foreground Vivid Magenta]
 blue    = setSGRCode [SetColor Foreground Vivid Blue]
-green   = setSGRCode [SetColor Foreground Vivid Green]
 cyan    = setSGRCode [SetColor Foreground Vivid Cyan]
 red     = setSGRCode [SetColor Foreground Vivid Red]
 bold    = setSGRCode [SetConsoleIntensity BoldIntensity]
@@ -53,27 +53,23 @@ reset   = setSGRCode []
 
 
 gitPrompt :: IO String
-gitPrompt = do 
-            icon  <- gitStatusIcon
-            name  <- gitNameRev   
-            ahead <- gitAheadIcon
-            let prompt = name ++ ahead ++ icon
-            return $ if (null prompt) then "" else "[" ++ prompt ++ "]" 
+gitPrompt =  liftA3 (\a b c -> a ++ b ++ c) gitNameRev gitAheadIcon gitStatusIcon  >>= \prompt -> 
+                return $ if (null prompt) then "" else "[" ++ prompt ++ "]" 
 
 
 gitStatusIcon :: IO String
-gitStatusIcon = gitStatus >>= \s -> do
-                    let icon = concat . nub $ map gitIcon s   
+gitStatusIcon = liftA (concat . nub . (map gitIcon)) gitStatus >>= \icon ->
                     return $ if (null icon) then "" else ("|" ++ icon)  
 
 
-gitIcon :: String -> String
-gitIcon (' ':'M':_) =  bold ++ blue  ++ "×" ++ reset
+gitIcon :: String -> String              
+gitIcon (' ':'M':_) =  bold ++ blue  ++ "±" ++ reset
 gitIcon (_  :'D':_) =  bold ++ red   ++ "—" ++ reset
 gitIcon ('M':' ':_) =  bold ++ blue  ++ "٭" ++ reset
-gitIcon ('A':'M':_) =  bold ++ cyan  ++ "٭" ++ reset
-gitIcon ('A':_  :_) =  bold ++ green ++ "٭" ++ reset
-gitIcon ('D':_  :_) =  bold ++ red   ++ "¬" ++ reset
+gitIcon ('A':' ':_) =  bold ++ blue  ++ "⦁" ++ reset
+gitIcon ('M':_  :_) =  bold ++ cyan  ++ "٭" ++ reset
+gitIcon ('A':_  :_) =  bold ++ cyan  ++ "⦁" ++ reset
+gitIcon ('D':_  :_) =  bold ++ red   ++ "╌" ++ reset
 gitIcon ('R':_  :_) =  bold ++ cyan  ++ "ʀ" ++ reset
 gitIcon ('C':_  :_) =  bold ++ cyan  ++ "‡" ++ reset
 gitIcon ('?':'?':_) =  "…"
@@ -96,7 +92,7 @@ gitAheadIcon = readProcessWithExitCode "git" ["rev-list", "-n", "1", "HEAD@{upst
 
 
 pathPrompt :: IO String
-pathPrompt = shorten <$> (read <$> getEnv "COLUMNS") <*> (setHome <$> (getEnv "HOME") <*> getCurrentDirectory)
+pathPrompt = liftA2 shorten (read <$> getEnv "COLUMNS") (setHome <$> (getEnv "HOME") <*> getCurrentDirectory)
 
 
 shorten :: Int -> FilePath -> FilePath
