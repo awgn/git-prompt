@@ -20,36 +20,47 @@
 -- Add the following line to ~/.bashrc
 --
 -- export COLUMNS
--- export PS1='\u@\h \[\033[1;32m\]$(git-prompt path)\[\033[0m\] $(git-prompt git)$ '
+-- export PS1='\u :: \[\033[1;32m\]$(git-prompt path)\[\033[0m\] $(git-prompt git) -> '
+--
+-- or
+-- export PS1='$(git-prompt full)'
+--
 
 import System.Process
 import System.Directory
 import System.Environment
 import System.Console.ANSI
+import System.Posix.User
 
 import Control.Applicative
 import Data.List
 
 
 main :: IO ()
-main = do
-       getArgs >>= dispatch
+main = getArgs >>= dispatch
 
 
 dispatch :: [String] -> IO ()
-dispatch ["git"]  =  gitPrompt >>= putStr
-dispatch ["path"] =  pathPrompt >>= putStr
-dispatch _        =  error "[git] [path]" 
+dispatch ["git"]    =  gitPrompt  >>= putStr
+dispatch ["path"]   =  pathPrompt >>= putStr
+dispatch ["full"]   =  fullPrompt >>= putStr
+dispatch _          =  error "[git] [path] [full]" 
 
 
-magenta, blue, red, cyan, bold, reset :: String
+magenta, blue, red, cyan, green, bold, reset :: String
 
 magenta = setSGRCode [SetColor Foreground Vivid Magenta]
 blue    = setSGRCode [SetColor Foreground Vivid Blue]
 cyan    = setSGRCode [SetColor Foreground Vivid Cyan]
+green   = setSGRCode [SetColor Foreground Vivid Green]
 red     = setSGRCode [SetColor Foreground Vivid Red]
 bold    = setSGRCode [SetConsoleIntensity BoldIntensity]
 reset   = setSGRCode []
+
+
+fullPrompt :: IO String
+fullPrompt =  liftA3 make pathPrompt gitPrompt getEffectiveUserName
+                where make path git user = user ++ " :: " ++ green ++ bold ++ path ++ reset ++ " " ++ git ++ " -> " 
 
 
 gitPrompt :: IO String
