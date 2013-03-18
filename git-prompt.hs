@@ -106,13 +106,12 @@ pathPrompt :: IO String
 pathPrompt = liftA2 shorten (read <$> getEnv "COLUMNS") (setHome <$> (getEnv "HOME") <*> getCurrentDirectory)
 
 
+
 shorten :: Int -> FilePath -> FilePath
-shorten col xs | len < (gl + 3 + gr) = xs
-               | otherwise = take gl xs ++ "…" ++ drop (len - gr) xs
-           where len = length xs
-                 ml  = col `div` 2
-                 gl  = 10
-                 gr  = ml - gl - 20  
+shorten col path | len < half = path
+                 | otherwise  = take ((half `div` 2) - 1) path ++ "…" ++ drop (len - (half `div` 2)) path
+            where len = length path
+                  half = col `div` 2
 
 
 setHome :: FilePath -> FilePath -> FilePath
