@@ -77,9 +77,9 @@ gitIcon :: String -> String
 gitIcon (' ':'M':_) =  bold ++ blue  ++ "±" ++ reset
 gitIcon (_  :'D':_) =  bold ++ red   ++ "—" ++ reset
 gitIcon ('M':' ':_) =  bold ++ blue  ++ "٭" ++ reset
-gitIcon ('A':' ':_) =  bold ++ blue  ++ "⦁" ++ reset
+gitIcon ('A':' ':_) =  bold ++ green ++ "✛" ++ reset
 gitIcon ('M':_  :_) =  bold ++ cyan  ++ "٭" ++ reset
-gitIcon ('A':_  :_) =  bold ++ cyan  ++ "⦁" ++ reset
+gitIcon ('A':_  :_) =  bold ++ cyan  ++ "✛" ++ reset
 gitIcon ('D':_  :_) =  bold ++ red   ++ "╌" ++ reset
 gitIcon ('R':_  :_) =  bold ++ cyan  ++ "ʀ" ++ reset
 gitIcon ('C':_  :_) =  bold ++ cyan  ++ "‡" ++ reset
@@ -108,7 +108,7 @@ pathPrompt = liftA2 shorten (read <$> getEnv "COLUMNS") (setHome <$> (getEnv "HO
 
 shorten :: Int -> FilePath -> FilePath
 shorten col xs | len < (gl + 3 + gr) = xs
-               | otherwise = take gl xs ++ "..." ++ drop (len - gr) xs
+               | otherwise = take gl xs ++ "…" ++ drop (len - gr) xs
            where len = length xs
                  ml  = col `div` 2
                  gl  = 10
