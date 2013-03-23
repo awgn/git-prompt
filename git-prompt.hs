@@ -34,7 +34,7 @@ import System.Posix.User
 
 import Control.Applicative
 import Data.List
-
+import Data.String.Utils
 
 main :: IO ()
 main = getArgs >>= dispatch
@@ -94,13 +94,13 @@ gitStatus = readProcessWithExitCode "git" ["status", "--porcelain"] [] >>= \(_,x
 
 gitNameRev :: IO String
 gitNameRev = readProcessWithExitCode "git" ["name-rev", "--name-only", "HEAD"] [] >>= \(_,x,_) -> 
-                return $ if (null x) then "" else (magenta ++ bold ++ init x ++ reset) 
+                return $ if (null x) then "" else (replace "~" (reset ++ bold ++ "↓" ++ reset) (magenta ++ bold ++ init x ++ reset)) 
 
 
 gitAheadIcon :: IO String
-gitAheadIcon = readProcessWithExitCode "git" ["rev-list", "-n", "1", "HEAD@{upstream}..HEAD"] [] >>= \(_,x,_) ->
-                    return $ if (not . null $ lines x) then (bold ++ "↑" ++ reset) else "" 
-
+gitAheadIcon = readProcessWithExitCode "git" ["rev-list", "--count", "HEAD@{upstream}..HEAD"] [] >>= \(_,xs,_) ->
+                    return $ if (null xs || read xs == (0 :: Integer)) then "" else (bold ++ "↑" ++ reset ++ show(read xs :: Integer))  
+                                                                   
 
 pathPrompt :: IO String
 pathPrompt = liftA2 shorten (read <$> getEnv "COLUMNS") (setHome <$> (getEnv "HOME") <*> getCurrentDirectory)
