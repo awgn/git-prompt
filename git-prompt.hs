@@ -34,7 +34,7 @@ import System.Posix.User
 
 import Control.Applicative
 import Data.List
-import Data.String.Utils
+import Data.List.Split
 
 main :: IO ()
 main = getArgs >>= dispatch
@@ -91,7 +91,6 @@ gitStatus :: IO [String]
 gitStatus = readProcessWithExitCode "git" ["status", "--porcelain"] [] >>= \(_,x,_) -> 
                 return (lines x)
 
-
 gitNameRev :: IO String
 gitNameRev = readProcessWithExitCode "git" ["name-rev", "--name-only", "HEAD"] [] >>= \(_,x,_) -> 
                 return $ if (null x) then "" else (replace "~" (reset ++ bold ++ "↓" ++ reset) (magenta ++ bold ++ init x ++ reset)) 
@@ -117,4 +116,9 @@ shorten col path | len < half = path
 setHome :: FilePath -> FilePath -> FilePath
 setHome xs ps | xs `isPrefixOf` ps = '~' : (snd $ splitAt (length xs) ps)  
               | otherwise = ps 
+
+
+replace :: String -> String -> String -> String
+replace x y xs =  intercalate y $ splitOn x xs 
+
 
