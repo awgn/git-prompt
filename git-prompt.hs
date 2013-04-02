@@ -60,11 +60,11 @@ reset   = setSGRCode []
 
 fullPrompt :: IO String
 fullPrompt =  liftA3 make pathPrompt gitPrompt getEffectiveUserName
-                where make path git user = user ++ " :: " ++ green ++ bold ++ path ++ reset ++ " " ++ git ++ " -> " 
+                where make path git user = user ++ " :: " ++ green ++ bold ++ path ++ reset ++ git ++ " -> " 
 
 
 gitPrompt :: IO String
-gitPrompt =  liftA3 (\a b c -> a ++ b ++ c) gitNameRev gitAheadIcon gitStatusIcon  >>= \prompt -> 
+gitPrompt =  liftA3 (\a b c -> a ++ b ++ c) gitBranchName gitAheadIcon gitStatusIcon  >>= \prompt -> 
                 return $ if (null prompt) then "" else "[" ++ prompt ++ "]" 
 
 
@@ -90,6 +90,16 @@ gitIcon  _          =  ""
 gitStatus :: IO [String]
 gitStatus = readProcessWithExitCode "git" ["status", "--porcelain"] [] >>= \(_,x,_) -> 
                 return (lines x)
+
+
+gitBranchName :: IO String
+gitBranchName = gitSymbolicRef >>= \r -> if (null r) then gitNameRev else return r
+
+
+gitSymbolicRef :: IO String
+gitSymbolicRef = readProcessWithExitCode "git" ["symbolic-ref", "HEAD"] [] >>= \(_,x,_) -> 
+                return $ if (null x) then "" else (magenta ++ bold ++ (filter (/= '\n') $ last $ splitOn "/" x) ++ reset) 
+
 
 gitNameRev :: IO String
 gitNameRev = readProcessWithExitCode "git" ["name-rev", "--name-only", "HEAD"] [] >>= \(_,x,_) -> 
