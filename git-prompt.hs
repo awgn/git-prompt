@@ -65,12 +65,12 @@ fullPrompt =  liftA3 make pathPrompt gitPrompt getEffectiveUserName
 
 gitPrompt :: IO String
 gitPrompt =  liftA3 (\a b c -> a ++ b ++ c) gitBranchName gitAheadIcon gitStatusIcon  >>= \prompt -> 
-                return $ if (null prompt) then "" else "[" ++ prompt ++ "]" 
+                return $ if null prompt then "" else "[" ++ prompt ++ "]" 
 
 
 gitStatusIcon :: IO String
-gitStatusIcon = liftA (concat . nub . (map gitIcon)) gitStatus >>= \icon ->
-                    return $ if (null icon) then "" else ("|" ++ icon)  
+gitStatusIcon = liftA (concat . nub . map gitIcon) gitStatus >>= \icon ->
+                    return $ if null icon then "" else '|' : icon 
 
 
 gitIcon :: String -> String              
@@ -93,26 +93,26 @@ gitStatus = readProcessWithExitCode "git" ["status", "--porcelain"] [] >>= \(_,x
 
 
 gitBranchName :: IO String
-gitBranchName = gitSymbolicRef >>= \r -> if (null r) then gitNameRev else return r
+gitBranchName = gitSymbolicRef >>= \r -> if null r then gitNameRev else return r
 
 
 gitSymbolicRef :: IO String
 gitSymbolicRef = readProcessWithExitCode "git" ["symbolic-ref", "HEAD"] [] >>= \(_,x,_) -> 
-                return $ if (null x) then "" else (magenta ++ bold ++ (filter (/= '\n') $ last $ splitOn "/" x) ++ reset) 
+                return $ if null x then "" else magenta ++ bold ++ filter (/= '\n') (last $ splitOn "/" x) ++ reset 
 
 
 gitNameRev :: IO String
 gitNameRev = readProcessWithExitCode "git" ["name-rev", "--name-only", "HEAD"] [] >>= \(_,x,_) -> 
-                return $ if (null x) then "" else (replace "~" (reset ++ bold ++ "↓" ++ reset) (magenta ++ bold ++ init x ++ reset)) 
+                return $ if null x then "" else replace "~" (reset ++ bold ++ "↓" ++ reset) (magenta ++ bold ++ init x ++ reset) 
 
 
 gitAheadIcon :: IO String
 gitAheadIcon = readProcessWithExitCode "git" ["rev-list", "--count", "HEAD@{upstream}..HEAD"] [] >>= \(_,xs,_) ->
-                    return $ if (null xs || read xs == (0 :: Integer)) then "" else (bold ++ "↑" ++ reset ++ show(read xs :: Integer))  
+                    return $ if null xs || read xs == (0 :: Integer) then "" else bold ++ "↑" ++ reset ++ show(read xs :: Integer)  
                                                                    
 
 pathPrompt :: IO String
-pathPrompt = liftA2 shorten (read <$> getEnv "COLUMNS") (setHome <$> (getEnv "HOME") <*> getCurrentDirectory)
+pathPrompt = liftA2 shorten (read <$> getEnv "COLUMNS") (setHome <$> getEnv "HOME" <*> getCurrentDirectory)
 
 
 
@@ -124,7 +124,7 @@ shorten col path | len < half = path
 
 
 setHome :: FilePath -> FilePath -> FilePath
-setHome xs ps | xs `isPrefixOf` ps = '~' : (snd $ splitAt (length xs) ps)  
+setHome xs ps | xs `isPrefixOf` ps = '~' : snd (splitAt (length xs) ps)  
               | otherwise = ps 
 
 
