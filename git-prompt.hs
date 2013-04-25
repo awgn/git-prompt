@@ -20,10 +20,8 @@
 -- Add the following line to ~/.bashrc
 --
 -- export COLUMNS
--- export PS1='\u :: \[\033[1;32m\]$(git-prompt path)\[\033[0m\] $(git-prompt git) -> '
+-- export PS1='\u :: \[\033[01;32m\]$(/usr/local/bin/git-prompt path)\[\033[m\] $(/usr/local/bin/git-prompt git) -> '
 --
--- or
--- export PS1='$(git-prompt full)'
 --
 
 import System.Process
@@ -44,18 +42,18 @@ dispatch :: [String] -> IO ()
 dispatch ["git"]    =  gitPrompt  >>= putStr
 dispatch ["path"]   =  pathPrompt >>= putStr
 dispatch ["full"]   =  fullPrompt >>= putStr
-dispatch _          =  error "[git] [path] [full]" 
+dispatch _          =  error "[git|path|full]" 
 
 
 magenta, blue, red, cyan, green, bold, reset :: String
 
-magenta = setSGRCode [SetColor Foreground Vivid Magenta]
-blue    = setSGRCode [SetColor Foreground Vivid Blue]
-cyan    = setSGRCode [SetColor Foreground Vivid Cyan]
-green   = setSGRCode [SetColor Foreground Vivid Green]
-red     = setSGRCode [SetColor Foreground Vivid Red]
-bold    = setSGRCode [SetConsoleIntensity BoldIntensity]
-reset   = setSGRCode []
+magenta = setSGRCode [SetColor Foreground Vivid Magenta] 
+blue    = setSGRCode [SetColor Foreground Vivid Blue]    
+cyan    = setSGRCode [SetColor Foreground Vivid Cyan]    
+green   = setSGRCode [SetColor Foreground Vivid Green]   
+red     = setSGRCode [SetColor Foreground Vivid Red]     
+bold    = setSGRCode [SetConsoleIntensity BoldIntensity] 
+reset   = setSGRCode []                                  
 
 
 fullPrompt :: IO String
@@ -89,7 +87,7 @@ gitIcon  _          =  ""
 
 gitStatus :: IO [String]
 gitStatus = readProcessWithExitCode "git" ["status", "--porcelain"] [] >>= \(_,x,_) -> 
-                return (lines x)
+    return (lines x)
 
 
 gitBranchName :: IO String
@@ -98,22 +96,21 @@ gitBranchName = gitSymbolicRef >>= \r -> if null r then gitNameRev else return r
 
 gitSymbolicRef :: IO String
 gitSymbolicRef = readProcessWithExitCode "git" ["symbolic-ref", "HEAD"] [] >>= \(_,x,_) -> 
-                return $ if null x then "" else magenta ++ bold ++ filter (/= '\n') (last $ splitOn "/" x) ++ reset 
+    return $ if null x then "" else magenta ++ bold ++ filter (/= '\n') (last $ splitOn "/" x) ++ reset 
 
 
 gitNameRev :: IO String
 gitNameRev = readProcessWithExitCode "git" ["name-rev", "--name-only", "HEAD"] [] >>= \(_,x,_) -> 
-                return $ if null x then "" else replace "~" (reset ++ bold ++ "↓" ++ reset) (magenta ++ bold ++ init x ++ reset) 
+    return $ if null x then "" else replace "~" (reset ++ bold ++ "↓" ++ reset) (magenta ++ bold ++ init x ++ reset) 
 
 
 gitAheadIcon :: IO String
 gitAheadIcon = readProcessWithExitCode "git" ["rev-list", "--count", "HEAD@{upstream}..HEAD"] [] >>= \(_,xs,_) ->
-                    return $ if null xs || read xs == (0 :: Integer) then "" else bold ++ "↑" ++ reset ++ show(read xs :: Integer)  
+    return $ if null xs || read xs == (0 :: Integer) then "" else bold ++ "↑" ++ reset ++ show(read xs :: Integer)  
                                                                    
 
 pathPrompt :: IO String
 pathPrompt = liftA2 shorten (read <$> getEnv "COLUMNS") (setHome <$> getEnv "HOME" <*> getCurrentDirectory)
-
 
 
 shorten :: Int -> FilePath -> FilePath
