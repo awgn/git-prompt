@@ -83,7 +83,7 @@ gitIcon  _          =  ""
 
 
 gitCommand :: [String] -> IO String
-gitCommand arg = readProcess "git" arg [] 
+gitCommand arg = readProcessWithExitCode "git" arg [] >>= \(_, xs, _) -> return xs 
 
 
 gitStatus :: IO [String]
@@ -91,7 +91,7 @@ gitStatus = gitCommand ["status", "--porcelain"] >>= \n -> return $ lines n
 
 
 gitBranchName :: IO String
-gitBranchName = liftM2 (<|>) gitSymbolicRef gitNameRev >>= \n -> return $ fromMaybe "?" n 
+gitBranchName = liftM2 (<|>) gitSymbolicRef gitNameRev >>= \n -> return $ fromMaybe "" n 
 
 
 gitSymbolicRef :: IO (Maybe String)
