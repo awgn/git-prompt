@@ -20,8 +20,7 @@
 -- Add the following line to ~/.bashrc
 --
 -- export COLUMNS
--- export PS1='\u :: \[\033[01;32m\]$(/usr/local/bin/git-prompt path)\[\033[m\] $(/usr/local/bin/git-prompt git) -> '
---
+-- export PS1='\u :: \[\033[1;32m\]$(/usr/local/bin/git-prompt path)\[\033[0m\]$(/usr/local/bin/git-prompt git)'
 --
 
 import System.Process
@@ -63,7 +62,7 @@ fullPrompt =  liftA3 make pathPrompt gitPrompt getEffectiveUserName
 
 gitPrompt :: IO String
 gitPrompt =  liftA3 (\a b c -> a ++ b ++ c) gitBranchName gitAheadIcon gitStatusIcon  >>= \prompt -> 
-                return $ if null prompt then "" else "[" ++ prompt ++ "]" 
+                return $ if null prompt then " -> " else bold ++ " (" ++ reset ++ prompt ++ bold ++ ")" ++ reset ++ "\n-> " 
 
 
 gitStatusIcon :: IO String
@@ -96,7 +95,7 @@ gitBranchName = gitSymbolicRef >>= \r -> if null r then gitNameRev else return r
 
 gitSymbolicRef :: IO String
 gitSymbolicRef = readProcessWithExitCode "git" ["symbolic-ref", "HEAD"] [] >>= \(_,x,_) -> 
-    return $ if null x then "" else magenta ++ bold ++ filter (/= '\n') (last $ splitOn "/" x) ++ reset 
+    return $ if null x then "" else cyan ++ bold ++ filter (/= '\n') (last $ splitOn "/" x) ++ reset 
 
 
 gitNameRev :: IO String
