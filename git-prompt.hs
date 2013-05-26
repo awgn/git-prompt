@@ -105,7 +105,7 @@ gitNameRev :: IO (Maybe String)
 gitNameRev = gitCommand ["name-rev", "--name-only", "HEAD"] >>= \xs -> 
         return $ if null xs 
                    then Nothing
-                   else Just $ replace "~" (reset ++ bold ++ "↓" ++ reset) (magenta ++ bold ++ init xs ++ reset) 
+                   else Just $ replace "~" (reset ++ bold ++ "↓" ++ reset) (cyan ++ bold ++ init xs ++ reset) 
 
 
 gitAheadIcon :: IO String
