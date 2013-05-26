@@ -22,15 +22,18 @@
 -- export COLUMNS
 -- export PS1='\u :: \[\033[1;32m\]$(/usr/local/bin/git-prompt path)\[\033[0m\]$(/usr/local/bin/git-prompt git)'
 
+
 import System.Process
 import System.Directory
 import System.Environment
 import System.Console.ANSI
-import System.Posix.User
 
+import Control.Monad
 import Control.Applicative
+import Data.Maybe
 import Data.List
 import Data.List.Split
+
 
 main :: IO ()
 main = getArgs >>= dispatch
@@ -55,12 +58,14 @@ reset   = setSGRCode []
 
 gitPrompt :: IO String
 gitPrompt =  liftA3 (\a b c -> a ++ b ++ c) gitBranchName gitAheadIcon gitStatusIcon  >>= \prompt -> 
-                return $ if null prompt then " -> " else bold ++ " (" ++ reset ++ prompt ++ bold ++ ")" ++ reset ++ "\n-> " 
+    return $ if null prompt 
+               then " -> " 
+               else bold ++ " (" ++ reset ++ prompt ++ bold ++ ")" ++ reset ++ "\n-> " 
 
 
 gitStatusIcon :: IO String
 gitStatusIcon = liftA (concat . nub . map gitIcon) gitStatus >>= \icon ->
-                    return $ if null icon then "" else '|' : icon 
+    return $ if null icon then "" else '|' : icon 
 
 
 gitIcon :: String -> String              
@@ -77,28 +82,37 @@ gitIcon ('?':'?':_) =  "…"
 gitIcon  _          =  ""
 
 
+gitCommand :: [String] -> IO String
+gitCommand arg = readProcess "git" arg [] 
+
+
 gitStatus :: IO [String]
-gitStatus = readProcessWithExitCode "git" ["status", "--porcelain"] [] >>= \(_,x,_) -> 
-    return (lines x)
+gitStatus = gitCommand ["status", "--porcelain"] >>= \n -> return $ lines n
 
 
 gitBranchName :: IO String
-gitBranchName = gitSymbolicRef >>= \r -> if null r then gitNameRev else return r
+gitBranchName = liftM2 (<|>) gitSymbolicRef gitNameRev >>= \n -> return $ fromMaybe "?" n 
 
 
-gitSymbolicRef :: IO String
-gitSymbolicRef = readProcessWithExitCode "git" ["symbolic-ref", "HEAD"] [] >>= \(_,x,_) -> 
-    return $ if null x then "" else cyan ++ bold ++ filter (/= '\n') (last $ splitOn "/" x) ++ reset 
+gitSymbolicRef :: IO (Maybe String)
+gitSymbolicRef = gitCommand ["symbolic-ref", "HEAD"] >>= \xs -> 
+        return $ if null xs 
+                   then Nothing
+                   else Just $ cyan ++ bold ++ filter (/= '\n') (last $ splitOn "/" xs) ++ reset 
 
 
-gitNameRev :: IO String
-gitNameRev = readProcessWithExitCode "git" ["name-rev", "--name-only", "HEAD"] [] >>= \(_,x,_) -> 
-    return $ if null x then "" else replace "~" (reset ++ bold ++ "↓" ++ reset) (magenta ++ bold ++ init x ++ reset) 
+gitNameRev :: IO (Maybe String)
+gitNameRev = gitCommand ["name-rev", "--name-only", "HEAD"] >>= \xs -> 
+        return $ if null xs 
+                   then Nothing
+                   else Just $ replace "~" (reset ++ bold ++ "↓" ++ reset) (magenta ++ bold ++ init xs ++ reset) 
 
 
 gitAheadIcon :: IO String
-gitAheadIcon = readProcessWithExitCode "git" ["rev-list", "--count", "HEAD@{upstream}..HEAD"] [] >>= \(_,xs,_) ->
-    return $ if null xs || read xs == (0 :: Integer) then "" else bold ++ "↑" ++ reset ++ show(read xs :: Integer)  
+gitAheadIcon = gitCommand ["rev-list", "--count", "HEAD@{upstream}..HEAD"] >>= \xs ->
+    return $ if null xs || read xs == (0 :: Integer) 
+               then "" 
+               else bold ++ "↑" ++ reset ++ show(read xs :: Integer)  
                                                                    
 
 pathPrompt :: IO String
@@ -119,5 +133,4 @@ setHome xs ps | xs `isPrefixOf` ps = '~' : snd (splitAt (length xs) ps)
 
 replace :: String -> String -> String -> String
 replace x y xs =  intercalate y $ splitOn x xs 
-
 
