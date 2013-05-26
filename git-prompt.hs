@@ -21,7 +21,6 @@
 --
 -- export COLUMNS
 -- export PS1='\u :: \[\033[1;32m\]$(/usr/local/bin/git-prompt path)\[\033[0m\]$(/usr/local/bin/git-prompt git)'
---
 
 import System.Process
 import System.Directory
@@ -40,8 +39,7 @@ main = getArgs >>= dispatch
 dispatch :: [String] -> IO ()
 dispatch ["git"]    =  gitPrompt  >>= putStr
 dispatch ["path"]   =  pathPrompt >>= putStr
-dispatch ["full"]   =  fullPrompt >>= putStr
-dispatch _          =  error "[git|path|full]" 
+dispatch _          =  error "[git|path]" 
 
 
 magenta, blue, red, cyan, green, bold, reset :: String
@@ -53,11 +51,6 @@ green   = setSGRCode [SetColor Foreground Vivid Green]
 red     = setSGRCode [SetColor Foreground Vivid Red]     
 bold    = setSGRCode [SetConsoleIntensity BoldIntensity] 
 reset   = setSGRCode []                                  
-
-
-fullPrompt :: IO String
-fullPrompt =  liftA3 make pathPrompt gitPrompt getEffectiveUserName
-                where make path git user = user ++ " :: " ++ green ++ bold ++ path ++ reset ++ git ++ " -> " 
 
 
 gitPrompt :: IO String
@@ -109,7 +102,7 @@ gitAheadIcon = readProcessWithExitCode "git" ["rev-list", "--count", "HEAD@{upst
                                                                    
 
 pathPrompt :: IO String
-pathPrompt = liftA2 shorten (read <$> getEnv "COLUMNS") (setHome <$> getEnv "HOME" <*> getCurrentDirectory)
+pathPrompt = liftA2 shorten (read <$> getEnv "COLUMNS") (setHome <$> getEnv "HOME" <*> getCurrentDirectory) 
 
 
 shorten :: Int -> FilePath -> FilePath
