@@ -20,7 +20,7 @@
 -- Add the following line to ~/.bashrc
 --
 -- export COLUMNS
--- PS1='$(/usr/local/bin/git-prompt git)\n\u :: \[\033[1;32m\]$(/usr/local/bin/git-prompt path)\[\033[0m\] -> '
+-- PS1='$(/usr/local/bin/git-prompt git)\u :: \[\033[1;32m\]$(/usr/local/bin/git-prompt path)\[\033[0m\] -> '
 
 import System.Process
 import System.Directory
@@ -59,7 +59,7 @@ gitPrompt :: IO String
 gitPrompt =  liftA3 (\a b c -> a ++ b ++ c) gitBranchName gitAheadIcon gitStatusIcon  >>= \prompt -> 
     return $ if null prompt 
                then "" 
-               else bold ++ "(" ++ reset ++ prompt ++ bold ++ ")" ++ reset 
+               else bold ++ "(" ++ reset ++ prompt ++ bold ++ ")\n" ++ reset 
 
 
 gitStatusIcon :: IO String
