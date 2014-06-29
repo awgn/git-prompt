@@ -15,12 +15,12 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 --
--- git-prompt:  
--- 
+-- git-prompt:
+--
 -- Add the following line to ~/.bashrc
 --
 -- export COLUMNS
--- PS1='\u :: \[\033[1;32m\]$(/usr/local/bin/git-prompt path)\[\033[0m\] $(/usr/local/bin/git-prompt git) -> '
+-- PS1='\u :: \[\033[1;32m\]$(/usr/local/bin/git-prompt path)\[\033[0m\] $(/usr/local/bin/git-prompt git)\n-> '
 
 import System.Process
 import System.Directory
@@ -41,33 +41,33 @@ main = getArgs >>= dispatch
 dispatch :: [String] -> IO ()
 dispatch ["git"]    =  gitPrompt  >>= putStr
 dispatch ["path"]   =  pathPrompt >>= putStr
-dispatch _          =  error "[git|path]" 
+dispatch _          =  error "[git|path]"
 
 
 magenta, blue, red, cyan, green, bold, reset :: String
 
-magenta = setSGRCode [SetColor Foreground Vivid Magenta] 
-blue    = setSGRCode [SetColor Foreground Vivid Blue]    
-cyan    = setSGRCode [SetColor Foreground Vivid Cyan]    
-green   = setSGRCode [SetColor Foreground Vivid Green]   
-red     = setSGRCode [SetColor Foreground Vivid Red]     
-bold    = setSGRCode [SetConsoleIntensity BoldIntensity] 
-reset   = setSGRCode []                                  
+magenta = setSGRCode [SetColor Foreground Vivid Magenta]
+blue    = setSGRCode [SetColor Foreground Vivid Blue]
+cyan    = setSGRCode [SetColor Foreground Vivid Cyan]
+green   = setSGRCode [SetColor Foreground Vivid Green]
+red     = setSGRCode [SetColor Foreground Vivid Red]
+bold    = setSGRCode [SetConsoleIntensity BoldIntensity]
+reset   = setSGRCode []
 
 
 gitPrompt :: IO String
-gitPrompt =  liftA3 (\a b c -> a ++ b ++ c) gitBranchName gitAheadIcon gitStatusIcon  >>= \prompt -> 
-    return $ if null prompt 
-               then "" 
-               else bold ++ "(" ++ reset ++ prompt ++ bold ++ ")" ++ reset 
+gitPrompt =  liftA3 (\a b c -> a ++ b ++ c) gitBranchName gitAheadIcon gitStatusIcon  >>= \prompt ->
+    return $ if null prompt
+               then ""
+               else bold ++ "(" ++ reset ++ prompt ++ bold ++ ")" ++ reset
 
 
 gitStatusIcon :: IO String
 gitStatusIcon = liftA (concat . nub . map gitIcon) gitStatus >>= \icon ->
-    return $ if null icon then "" else '|' : icon 
+    return $ if null icon then "" else '|' : icon
 
 
-gitIcon :: String -> String              
+gitIcon :: String -> String
 gitIcon (' ':'M':_) =  bold ++ blue  ++ "±" ++ reset
 gitIcon (_  :'D':_) =  bold ++ red   ++ "—" ++ reset
 gitIcon ('M':' ':_) =  bold ++ blue  ++ "٭" ++ reset
@@ -82,40 +82,40 @@ gitIcon  _          =  ""
 
 
 gitCommand :: [String] -> IO String
-gitCommand arg = readProcessWithExitCode "git" arg [] >>= \(_, xs, _) -> return xs 
+gitCommand arg = readProcess "git" arg []
 
 
 gitStatus :: IO [String]
-gitStatus = gitCommand ["status", "--porcelain"] >>= \n -> return $ lines n
+gitStatus = liftM lines $ gitCommand ["status", "--porcelain"]
 
 
 gitBranchName :: IO String
-gitBranchName = liftM2 (<|>) gitSymbolicRef gitNameRev >>= \n -> return $ fromMaybe "" n 
+gitBranchName = liftM2 (<|>) gitSymbolicRef gitNameRev >>= \n -> return $ fromMaybe "" n
 
 
 gitSymbolicRef :: IO (Maybe String)
-gitSymbolicRef = gitCommand ["symbolic-ref", "HEAD"] >>= \xs -> 
-        return $ if null xs 
+gitSymbolicRef = gitCommand ["symbolic-ref", "HEAD"] >>= \xs ->
+        return $ if null xs
                    then Nothing
-                   else Just $ cyan ++ bold ++ filter (/= '\n') (last $ splitOn "/" xs) ++ reset 
+                   else Just $ cyan ++ bold ++ filter (/= '\n') (last $ splitOn "/" xs) ++ reset
 
 
 gitNameRev :: IO (Maybe String)
-gitNameRev = gitCommand ["name-rev", "--name-only", "HEAD"] >>= \xs -> 
-        return $ if null xs 
+gitNameRev = gitCommand ["name-rev", "--name-only", "HEAD"] >>= \xs ->
+        return $ if null xs
                    then Nothing
-                   else Just $ replace "~" (reset ++ bold ++ "↓" ++ reset) (cyan ++ bold ++ init xs ++ reset) 
+                   else Just $ replace "~" (reset ++ bold ++ "↓" ++ reset) (cyan ++ bold ++ init xs ++ reset)
 
 
 gitAheadIcon :: IO String
 gitAheadIcon = gitCommand ["rev-list", "--count", "HEAD@{upstream}..HEAD"] >>= \xs ->
-    return $ if null xs || read xs == (0 :: Integer) 
-               then "" 
-               else bold ++ "↑" ++ reset ++ show(read xs :: Integer)  
-                                                                   
+    return $ if null xs || read xs == (0 :: Integer)
+               then ""
+               else bold ++ "↑" ++ reset ++ show(read xs :: Integer)
+
 
 pathPrompt :: IO String
-pathPrompt = liftA2 shorten (read <$> getEnv "COLUMNS") (setHome <$> getEnv "HOME" <*> getCurrentDirectory) 
+pathPrompt = liftA2 shorten (read <$> getEnv "COLUMNS") (setHome <$> getEnv "HOME" <*> getCurrentDirectory)
 
 
 shorten :: Int -> FilePath -> FilePath
@@ -126,10 +126,10 @@ shorten col path | len < half = path
 
 
 setHome :: FilePath -> FilePath -> FilePath
-setHome xs ps | xs `isPrefixOf` ps = '~' : snd (splitAt (length xs) ps)  
-              | otherwise = ps 
+setHome xs ps | xs `isPrefixOf` ps = '~' : snd (splitAt (length xs) ps)
+              | otherwise = ps
 
 
 replace :: String -> String -> String -> String
-replace x y xs =  intercalate y $ splitOn x xs 
+replace x y xs =  intercalate y $ splitOn x xs
 
