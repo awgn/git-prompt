@@ -82,7 +82,7 @@ gitIcon  _          =  ""
 
 
 gitCommand :: [String] -> IO String
-gitCommand arg = readProcess "git" arg []
+gitCommand arg = liftM(\(_, x, _) -> x) $ readProcessWithExitCode "git" arg []
 
 
 gitStatus :: IO [String]
