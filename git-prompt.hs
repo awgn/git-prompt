@@ -22,6 +22,7 @@
 -- export COLUMNS
 -- PS1='\u :: \[\033[1;32m\]$(/usr/local/bin/git-prompt path)\[\033[0m\] $(/usr/local/bin/git-prompt git)\n-> '
 
+
 import System.Process
 import System.Directory
 import System.Environment
@@ -32,31 +33,44 @@ import Control.Applicative
 import Data.Maybe
 import Data.List
 import Data.List.Split
-
+import Debug.Trace
 
 main :: IO ()
 main = getArgs >>= dispatch
 
-
 dispatch :: [String] -> IO ()
-dispatch ["git"]    =  gitPrompt  >>= putStr
-dispatch ["path"]   =  pathPrompt >>= putStr
-dispatch _          =  error "[git|path]"
+dispatch ["path"] =  pathPrompt >>= putStr
+dispatch [xs]     =  gitPrompt xs >>= putStr
+dispatch _        =  error "git-prompt [blue|red|green|cyan|magenta|yellow|white|path]"
 
 
 magenta, blue, red, cyan, green, bold, reset :: String
+
 
 magenta = setSGRCode [SetColor Foreground Vivid Magenta]
 blue    = setSGRCode [SetColor Foreground Vivid Blue]
 cyan    = setSGRCode [SetColor Foreground Vivid Cyan]
 green   = setSGRCode [SetColor Foreground Vivid Green]
 red     = setSGRCode [SetColor Foreground Vivid Red]
+yellow  = setSGRCode [SetColor Foreground Vivid Yellow]
+white   = setSGRCode [SetColor Foreground Vivid White]
 bold    = setSGRCode [SetConsoleIntensity BoldIntensity]
 reset   = setSGRCode []
 
 
-gitPrompt :: IO String
-gitPrompt =  liftA3 (\a b c -> a ++ b ++ c) gitBranchName gitAheadIcon gitStatusIcon  >>= \prompt ->
+getColorByName :: String -> String
+getColorByName "blue"    = blue
+getColorByName "red"     = red
+getColorByName "green"   = green
+getColorByName "cyan"    = cyan
+getColorByName "magenta" = magenta
+getColorByName "yellow"  = yellow
+getColorByName "white"   = white
+getColorByName _         = reset
+
+
+gitPrompt :: String -> IO String
+gitPrompt cname =  liftA3 (\a b c -> a ++ b ++ c) (gitBranchName cname) gitAheadIcon gitStatusIcon  >>= \prompt ->
     return $ if null prompt
                then ""
                else bold ++ "(" ++ reset ++ prompt ++ bold ++ ")" ++ reset
@@ -89,22 +103,23 @@ gitStatus :: IO [String]
 gitStatus = liftM lines $ gitCommand ["status", "--porcelain"]
 
 
-gitBranchName :: IO String
-gitBranchName = liftM2 (<|>) gitSymbolicRef gitNameRev >>= \n -> return $ fromMaybe "" n
+gitBranchName :: String -> IO String
+gitBranchName cname = liftM2 (<|>) (gitSymbolicRef color) (gitNameRev color) >>= \n -> return $ fromMaybe "" n
+                        where color = getColorByName cname
 
 
-gitSymbolicRef :: IO (Maybe String)
-gitSymbolicRef = gitCommand ["symbolic-ref", "HEAD"] >>= \xs ->
+gitSymbolicRef :: String -> IO (Maybe String)
+gitSymbolicRef color = gitCommand ["symbolic-ref", "HEAD"] >>= \xs ->
         return $ if null xs
                    then Nothing
-                   else Just $ cyan ++ bold ++ filter (/= '\n') (last $ splitOn "/" xs) ++ reset
+                   else Just $ color ++ bold ++ filter (/= '\n') (last $ splitOn "/" xs) ++ reset
 
 
-gitNameRev :: IO (Maybe String)
-gitNameRev = gitCommand ["name-rev", "--name-only", "HEAD"] >>= \xs ->
+gitNameRev :: String -> IO (Maybe String)
+gitNameRev color = gitCommand ["name-rev", "--name-only", "HEAD"] >>= \xs ->
         return $ if null xs
                    then Nothing
-                   else Just $ replace "~" (reset ++ bold ++ "↓" ++ reset) (cyan ++ bold ++ init xs ++ reset)
+                   else Just $ replace "~" (reset ++ bold ++ "↓" ++ reset) (color ++ bold ++ init xs ++ reset)
 
 
 gitAheadIcon :: IO String
