@@ -15,7 +15,6 @@ main = defaultMainWithHooks $
 
 printBanner :: Args -> InstallFlags -> PackageDescription -> LocalBuildInfo -> IO ()
 printBanner _ _ _ _ = do
-    putStrLn "Almost done! The last steps are to export COLUMNS and customize PS1 in your bashrc. Example: "
-    putStrLn "    export COLUMNS"
-    putStrLn "    PS1='\\u@\\h :: \\[\\033[1;32m\\]$(~/.cabal/bin/git-prompt path)\\[\\033[0m\\] $(~/.cabal/bin/git-prompt git)\\n-> '"
+    putStrLn "Almost done! The last step is to customize PS1 variable in your bashrc. Example: "
+    putStrLn "    PS1='\\u@\\h :: \\[\\033[1;32m\\]\\w\\[\\033[0m\\] $(~/.cabal/bin/git-prompt cyan)\\n-> '"
 

@@ -15,12 +15,6 @@
 -- along with this program; if not, write to the Free Software
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 --
--- git-prompt:
---
--- Add the following line to ~/.bashrc
---
--- export COLUMNS
--- PS1='\u :: \[\033[1;32m\]$(/usr/local/bin/git-prompt path)\[\033[0m\] $(/usr/local/bin/git-prompt git)\n-> '
 
 
 import System.Process
@@ -33,15 +27,14 @@ import Control.Applicative
 import Data.Maybe
 import Data.List
 import Data.List.Split
-import Debug.Trace
+
 
 main :: IO ()
 main = getArgs >>= dispatch
 
 dispatch :: [String] -> IO ()
-dispatch ["path"] =  pathPrompt >>= putStr
-dispatch [xs]     =  gitPrompt xs >>= putStr
-dispatch _        =  error "git-prompt [blue|red|green|cyan|magenta|yellow|white|path]"
+dispatch [xs]  =  gitPrompt xs >>= putStr
+dispatch _     =  error "git-prompt [blue|red|green|cyan|magenta|yellow|white]"
 
 
 magenta, blue, red, cyan, green, bold, reset :: String
@@ -108,6 +101,13 @@ gitBranchName cname = liftM2 (<|>) (gitSymbolicRef color) (gitNameRev color) >>=
                         where color = getColorByName cname
 
 
+gitAheadIcon :: IO String
+gitAheadIcon = gitCommand ["rev-list", "--count", "HEAD@{upstream}..HEAD"] >>= \xs ->
+    return $ if null xs || read xs == (0 :: Integer)
+               then ""
+               else bold ++ "↑" ++ reset ++ show(read xs :: Integer)
+
+
 gitSymbolicRef :: String -> IO (Maybe String)
 gitSymbolicRef color = gitCommand ["symbolic-ref", "HEAD"] >>= \xs ->
         return $ if null xs
@@ -122,29 +122,7 @@ gitNameRev color = gitCommand ["name-rev", "--name-only", "HEAD"] >>= \xs ->
                    else Just $ replace "~" (reset ++ bold ++ "↓" ++ reset) (color ++ bold ++ init xs ++ reset)
 
 
-gitAheadIcon :: IO String
-gitAheadIcon = gitCommand ["rev-list", "--count", "HEAD@{upstream}..HEAD"] >>= \xs ->
-    return $ if null xs || read xs == (0 :: Integer)
-               then ""
-               else bold ++ "↑" ++ reset ++ show(read xs :: Integer)
-
-
-pathPrompt :: IO String
-pathPrompt = liftA2 shorten (read <$> getEnv "COLUMNS") (setHome <$> getEnv "HOME" <*> getCurrentDirectory)
-
-
-shorten :: Int -> FilePath -> FilePath
-shorten col path | len < half = path
-                 | otherwise  = take ((half `div` 2) - 1) path ++ "…" ++ drop (len - (half `div` 2)) path
-            where len = length path
-                  half = col `div` 2
-
-
-setHome :: FilePath -> FilePath -> FilePath
-setHome xs ps | xs `isPrefixOf` ps = '~' : snd (splitAt (length xs) ps)
-              | otherwise = ps
-
-
 replace :: String -> String -> String -> String
 replace x y xs =  intercalate y $ splitOn x xs
+
 
