@@ -63,15 +63,21 @@ getColorByName _         = reset
 
 
 gitPrompt :: String -> IO String
-gitPrompt cname =  liftA3 (\a b c -> a ++ b ++ c) (gitBranchName cname) gitAheadIcon gitStatusIcon  >>= \prompt ->
-    return $ if null prompt
-               then ""
-               else bold ++ "(" ++ reset ++ prompt ++ bold ++ ")" ++ reset
+gitPrompt colorname =
+    liftM concat (sequence [gitBranchName colorname,
+                             return "|",
+                             gitDescribe "",
+                             gitAheadIcon,
+                             return "|",
+                             gitStatusIcon]) >>= \prompt ->
+        return $ if null prompt
+                then ""
+                else bold ++ "(" ++ reset ++ prompt ++ bold ++ ")" ++ reset
 
 
 gitStatusIcon :: IO String
-gitStatusIcon = liftA (concat . nub . map gitIcon) gitStatus >>= \icon ->
-    return $ if null icon then "" else '|' : icon
+gitStatusIcon = liftM (concat . nub . map gitIcon) gitStatus >>= \icon ->
+    return $ if null icon then "" else icon
 
 
 gitIcon :: String -> String
@@ -88,17 +94,13 @@ gitIcon ('?':'?':_) =  "…"
 gitIcon  _          =  ""
 
 
-gitCommand :: [String] -> IO String
-gitCommand arg = liftM(\(_, x, _) -> x) $ readProcessWithExitCode "git" arg []
-
-
 gitStatus :: IO [String]
 gitStatus = liftM lines $ gitCommand ["status", "--porcelain"]
 
 
 gitBranchName :: String -> IO String
-gitBranchName cname = liftM2 (<|>) (gitSymbolicRef color) (gitNameRev color) >>= \n -> return $ fromMaybe "" n
-                        where color = getColorByName cname
+gitBranchName colorname = liftM2 (<|>) (gitSymbolicRef color) (gitNameRev color) >>= \n -> return $ fromMaybe "" n
+    where color = getColorByName colorname
 
 
 gitAheadIcon :: IO String
@@ -122,7 +124,15 @@ gitNameRev color = gitCommand ["name-rev", "--name-only", "HEAD"] >>= \xs ->
                    else Just $ replace "~" (reset ++ bold ++ "↓" ++ reset) (color ++ bold ++ init xs ++ reset)
 
 
+gitDescribe :: String -> IO String
+gitDescribe colorname = liftM (filter (/= '\n')) $ gitCommand ["describe", "--abbrev=6", "--dirty=!", "--always", "--all", "--long"]
+
+
 replace :: String -> String -> String -> String
 replace x y xs =  intercalate y $ splitOn x xs
+
+
+gitCommand :: [String] -> IO String
+gitCommand arg = liftM(\(_, x, _) -> x) $ readProcessWithExitCode "git" arg []
 
 
