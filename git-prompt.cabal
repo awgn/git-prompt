@@ -18,5 +18,7 @@ Executable git-prompt
                         directory,
                         process,
                         split,
+                        transformers,
+                        mtl,
                         unix
     default-language:   Haskell2010

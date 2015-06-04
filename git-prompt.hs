@@ -23,11 +23,16 @@ import System.Environment
 import System.Console.ANSI
 
 import Control.Monad
+import Control.Monad.Trans
+import Control.Monad.Trans.Maybe
+
 import Control.Applicative
 import Data.Maybe
 import Data.List
 import Data.List.Split
 
+
+type MaybeIO = MaybeT IO
 
 main :: IO ()
 main = getArgs >>= dispatch
@@ -62,23 +67,66 @@ getColorByName "white"   = white
 getColorByName _         = reset
 
 
+-- 0: gitBranchName
+
 gitPrompt :: String -> IO String
-gitPrompt colorname =
-    liftM concat (sequence [gitBranchName colorname,
-                             return "|",
-                             gitDescribe "",
-                             gitAheadIcon,
-                             return "|",
-                             gitStatusIcon]) >>= \prompt ->
-        return $ if null prompt
-                then ""
-                else bold ++ "(" ++ reset ++ prompt ++ bold ++ ")" ++ reset
+gitPrompt colorname = do
+    prompt <- runMaybeT
+        (liftM concat $ sequence [gitBranchName colorname,
+                                  return "|",
+                                  gitDescribe "",
+                                  return "|",
+                                  gitAheadIcon,
+                                  gitStatusIcon])
+    return $ if isJust prompt
+                then bold ++ "(" ++ reset ++ fromJust prompt ++ bold ++ ")" ++ reset
+                else ""
 
 
-gitStatusIcon :: IO String
-gitStatusIcon = liftM (concat . nub . map gitIcon) gitStatus >>= \icon ->
-    return $ if null icon then "" else icon
+-- 1: gitBranchName
 
+gitBranchName :: String -> MaybeIO String
+gitBranchName colorname =
+    MaybeT $ liftA2 (<|>) (gitSymbolicRef color) (gitNameRev color)
+        where color = getColorByName colorname
+
+
+gitSymbolicRef :: String -> IO (Maybe String)
+gitSymbolicRef color = do
+    xs <- gitCommand ["symbolic-ref", "HEAD"]
+    return $ if null xs then Nothing
+                        else Just (color ++ bold ++ filter (/= '\n') (last $ splitOn "/" xs) ++ reset)
+
+
+gitNameRev :: String -> IO (Maybe String)
+gitNameRev color = do
+    xs <- liftIO $ gitCommand ["name-rev", "--name-only", "HEAD"]
+    return $ if null xs then Nothing
+                        else Just (replace "~" (reset ++ bold ++ "↓" ++ reset) (color ++ bold ++ init xs ++ reset))
+
+
+-- 2: gitDescribe
+
+gitDescribe :: String -> MaybeIO String
+gitDescribe colorname =  liftIO (gitCommand ["describe", "--abbrev=6", "--dirty=!", "--always", "--all", "--long"]) >>= \xs ->
+    failIfNull xs >> return (filter (/= '\n') xs)
+
+
+
+-- 3: gitAheadIcon
+
+gitAheadIcon :: MaybeIO String
+gitAheadIcon = do
+    xs <- liftIO $ gitCommand ["rev-list", "--count", "HEAD@{upstream}..HEAD"]
+    return (if null xs || read xs == (0 :: Integer)
+               then ""
+               else bold ++ "↑" ++ reset ++ show(read xs :: Integer))
+
+
+-- 4: gitStatusIcon
+
+gitStatusIcon :: MaybeIO String
+gitStatusIcon = liftIO $ liftM (concat . nub . map gitIcon . lines) (gitCommand ["status", "--porcelain"])
 
 gitIcon :: String -> String
 gitIcon (' ':'M':_) =  bold ++ blue  ++ "±" ++ reset
@@ -94,45 +142,15 @@ gitIcon ('?':'?':_) =  "…"
 gitIcon  _          =  ""
 
 
-gitStatus :: IO [String]
-gitStatus = liftM lines $ gitCommand ["status", "--porcelain"]
-
-
-gitBranchName :: String -> IO String
-gitBranchName colorname = liftM2 (<|>) (gitSymbolicRef color) (gitNameRev color) >>= \n -> return $ fromMaybe "" n
-    where color = getColorByName colorname
-
-
-gitAheadIcon :: IO String
-gitAheadIcon = gitCommand ["rev-list", "--count", "HEAD@{upstream}..HEAD"] >>= \xs ->
-    return $ if null xs || read xs == (0 :: Integer)
-               then ""
-               else bold ++ "↑" ++ reset ++ show(read xs :: Integer)
-
-
-gitSymbolicRef :: String -> IO (Maybe String)
-gitSymbolicRef color = gitCommand ["symbolic-ref", "HEAD"] >>= \xs ->
-        return $ if null xs
-                   then Nothing
-                   else Just $ color ++ bold ++ filter (/= '\n') (last $ splitOn "/" xs) ++ reset
-
-
-gitNameRev :: String -> IO (Maybe String)
-gitNameRev color = gitCommand ["name-rev", "--name-only", "HEAD"] >>= \xs ->
-        return $ if null xs
-                   then Nothing
-                   else Just $ replace "~" (reset ++ bold ++ "↓" ++ reset) (color ++ bold ++ init xs ++ reset)
-
-
-gitDescribe :: String -> IO String
-gitDescribe colorname = liftM (filter (/= '\n')) $ gitCommand ["describe", "--abbrev=6", "--dirty=!", "--always", "--all", "--long"]
-
-
 replace :: String -> String -> String -> String
 replace x y xs =  intercalate y $ splitOn x xs
 
 
 gitCommand :: [String] -> IO String
 gitCommand arg = liftM(\(_, x, _) -> x) $ readProcessWithExitCode "git" arg []
+
+
+failIfNull :: String -> MaybeIO ()
+failIfNull xs = when (null xs) (fail "null")
 
 
