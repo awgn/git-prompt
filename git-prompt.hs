@@ -69,15 +69,21 @@ getColorByName _         = reset
 
 -- 0: gitBranchName
 
+sepPrompt :: String -> MaybeIO String
+sepPrompt xs = return $ if null xs then xs
+                             else xs ++ "|"
+
 gitPrompt :: String -> IO String
 gitPrompt colorname = do
     prompt <- runMaybeT
         (liftM concat $ sequence [gitBranchName colorname,
                                   return "|",
-                                  gitDescribe "",
+                                  gitDescribe,
                                   return "|",
+                                  gitStashCounter >>= sepPrompt,
                                   gitAheadIcon,
-                                  gitStatusIcon])
+                                  gitStatusIcon
+                                  ])
     return $ if isJust prompt
                 then bold ++ "(" ++ reset ++ fromJust prompt ++ bold ++ ")" ++ reset
                 else ""
@@ -107,8 +113,8 @@ gitNameRev color = do
 
 -- 2: gitDescribe
 
-gitDescribe :: String -> MaybeIO String
-gitDescribe colorname =  liftIO (gitCommand ["describe", "--abbrev=6", "--dirty=!", "--always", "--all", "--long"]) >>= \xs ->
+gitDescribe :: MaybeIO String
+gitDescribe = liftIO (gitCommand ["describe", "--abbrev=6", "--dirty=!", "--always", "--all", "--long"]) >>= \xs ->
     failIfNull xs >> return (filter (/= '\n') xs)
 
 
@@ -127,6 +133,16 @@ gitAheadIcon = do
 
 gitStatusIcon :: MaybeIO String
 gitStatusIcon = liftIO $ liftM (concat . nub . map gitIcon . lines) (gitCommand ["status", "--porcelain"])
+
+
+-- 5: gitStashCounter:
+
+gitStashCounter:: MaybeIO String
+gitStashCounter = do
+    n <- liftIO $ liftM (length . lines) (gitCommand ["stash", "list"])
+    if n == 0 then return ""
+              else return $ bold ++ show n ++ reset
+
 
 gitIcon :: String -> String
 gitIcon (' ':'M':_) =  bold ++ blue  ++ "±" ++ reset
