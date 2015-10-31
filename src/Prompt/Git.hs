@@ -17,10 +17,11 @@
 --
 
 
+module Prompt.Git ( mkPrompt ) where
+
 import System.Process
 import System.Directory
 import System.Environment
-import System.Console.ANSI
 
 import Control.Monad
 import Control.Monad.Trans
@@ -31,50 +32,13 @@ import Data.Maybe
 import Data.List
 import Data.List.Split
 
+import Colors
 
 type MaybeIO = MaybeT IO
 
-main :: IO ()
-main = getArgs >>= dispatch
 
-dispatch :: [String] -> IO ()
-dispatch [xs]  =  gitPrompt xs >>= putStr
-dispatch _     =  error "git-prompt [blue|red|green|cyan|magenta|yellow|white]"
-
-
-magenta, blue, red, cyan, green, bold, reset :: String
-
-
-magenta = setSGRCode [SetColor Foreground Vivid Magenta]
-blue    = setSGRCode [SetColor Foreground Vivid Blue]
-cyan    = setSGRCode [SetColor Foreground Vivid Cyan]
-green   = setSGRCode [SetColor Foreground Vivid Green]
-red     = setSGRCode [SetColor Foreground Vivid Red]
-yellow  = setSGRCode [SetColor Foreground Vivid Yellow]
-white   = setSGRCode [SetColor Foreground Vivid White]
-bold    = setSGRCode [SetConsoleIntensity BoldIntensity]
-reset   = setSGRCode []
-
-
-getColorByName :: String -> String
-getColorByName "blue"    = blue
-getColorByName "red"     = red
-getColorByName "green"   = green
-getColorByName "cyan"    = cyan
-getColorByName "magenta" = magenta
-getColorByName "yellow"  = yellow
-getColorByName "white"   = white
-getColorByName _         = reset
-
-
--- 0: gitBranchName
-
-sepPrompt :: String -> MaybeIO String
-sepPrompt xs = return $ if null xs then xs
-                             else xs ++ "|"
-
-gitPrompt :: String -> IO String
-gitPrompt colorname = do
+mkPrompt :: String -> IO String
+mkPrompt colorname = do
     prompt <- runMaybeT
         (liftM concat $ sequence [gitBranchName colorname,
                                   return "|",
@@ -87,6 +51,10 @@ gitPrompt colorname = do
     return $ if isJust prompt
                 then bold ++ "(" ++ reset ++ fromJust prompt ++ bold ++ ")" ++ reset
                 else ""
+
+sepPrompt :: String -> MaybeIO String
+sepPrompt xs = return $ if null xs then xs
+                             else xs ++ "|"
 
 
 -- 1: gitBranchName
@@ -168,5 +136,4 @@ gitCommand arg = liftM(\(_, x, _) -> x) $ readProcessWithExitCode "git" arg []
 
 failIfNull :: String -> MaybeIO ()
 failIfNull xs = when (null xs) (fail "null")
-
 
