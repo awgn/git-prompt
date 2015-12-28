@@ -40,16 +40,16 @@ type MaybeIO = MaybeT IO
 mkPrompt :: String -> IO String
 mkPrompt colorname = do
     prompt <- runMaybeT
-        (liftM concat $ sequence [gitBranchName colorname,
-                                  return "|",
-                                  gitDescribe,
-                                  return "|",
-                                  gitStashCounter >>= sepPrompt,
-                                  gitAheadIcon,
-                                  gitStatusIcon
-                                  ])
+        (sequence [gitBranchName colorname,
+                   return "|",
+                   gitDescribe,
+                   return "|",
+                   gitStashCounter >>= sepPrompt,
+                   gitAheadIcon,
+                   gitStatusIcon
+                   ])
     return $ if isJust prompt
-                then bold ++ "(" ++ reset ++ fromJust prompt ++ bold ++ ")" ++ reset
+                then bold ++ "(" ++ reset ++ fromJust (fmap concat prompt) ++ bold ++ ")" ++ reset
                 else ""
 
 sepPrompt :: String -> MaybeIO String
