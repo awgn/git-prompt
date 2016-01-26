@@ -2,7 +2,7 @@
 -- see http://haskell.org/cabal/users-guide/
 
 name:                   git-prompt
-version:                1.3
+version:                1.5
 
 license-file:           LICENSE
 author:                 Nicola Bonelli
