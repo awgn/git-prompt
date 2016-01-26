@@ -131,7 +131,7 @@ replace x y xs =  intercalate y $ splitOn x xs
 
 
 gitCommand :: [String] -> IO String
-gitCommand arg = readProcess "git" arg []
+gitCommand arg = readProcessWithExitCode "git" arg [] >>= \(_,x,_) -> return x
 
 
 failIfNull :: String -> MaybeIO ()
