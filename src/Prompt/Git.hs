@@ -100,16 +100,16 @@ gitAheadIcon = do
 -- 4: gitStatusIcon
 
 gitStatusIcon :: MaybeIO String
-gitStatusIcon = liftIO $ liftM (concat . nub . map gitIcon . lines) (gitCommand ["status", "--porcelain"])
+gitStatusIcon = liftIO $ concat . nub . map gitIcon . lines <$> gitCommand ["status", "--porcelain"]
 
 
 -- 5: gitStashCounter:
 
 gitStashCounter:: MaybeIO String
 gitStashCounter = do
-    n <- liftIO $ liftM (length . lines) (gitCommand ["stash", "list"])
+    n <- liftIO $ length . lines <$> gitCommand ["stash", "list"]
     if n == 0 then return ""
-              else return $ bold ++ show n ++ reset
+              else return $ bold ++ "s" ++ show n ++ reset
 
 
 gitIcon :: String -> String
@@ -131,7 +131,7 @@ replace x y xs =  intercalate y $ splitOn x xs
 
 
 gitCommand :: [String] -> IO String
-gitCommand arg = liftM(\(_, x, _) -> x) $ readProcessWithExitCode "git" arg []
+gitCommand arg = readProcess "git" arg []
 
 
 failIfNull :: String -> MaybeIO ()
