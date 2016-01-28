@@ -100,7 +100,7 @@ gitAheadIcon = do
 -- 4: gitStatusIcon
 
 gitStatusIcon :: MaybeIO String
-gitStatusIcon = liftIO $ concat . nub . map gitIcon . lines <$> gitCommand ["status", "--porcelain"]
+gitStatusIcon = liftIO $ mergeIcons . map mkGitIcon . lines <$> gitCommand ["status", "--porcelain"]
 
 
 -- 5: gitStashCounter:
@@ -109,21 +109,32 @@ gitStashCounter:: MaybeIO String
 gitStashCounter = do
     n <- liftIO $ length . lines <$> gitCommand ["stash", "list"]
     if n == 0 then return ""
-              else return $ bold ++ "s" ++ show n ++ reset
+              else return $ bold ++ "≡" ++ show n ++ reset
 
 
-gitIcon :: String -> String
-gitIcon (' ':'M':_) =  bold ++ blue  ++ "±" ++ reset
-gitIcon (_  :'D':_) =  bold ++ red   ++ "—" ++ reset
-gitIcon ('M':' ':_) =  bold ++ blue  ++ "٭" ++ reset
-gitIcon ('A':' ':_) =  bold ++ green ++ "✛" ++ reset
-gitIcon ('M':_  :_) =  bold ++ cyan  ++ "٭" ++ reset
-gitIcon ('A':_  :_) =  bold ++ cyan  ++ "✛" ++ reset
-gitIcon ('D':_  :_) =  bold ++ red   ++ "╌" ++ reset
-gitIcon ('R':_  :_) =  bold ++ cyan  ++ "ʀ" ++ reset
-gitIcon ('C':_  :_) =  bold ++ cyan  ++ "‡" ++ reset
-gitIcon ('?':'?':_) =  "…"
-gitIcon  _          =  ""
+type Color = String
+type GitIcon = (Color, String)
+
+
+mergeIcons :: [GitIcon] -> String
+mergeIcons = concat . map (renderIcon . (\xs -> (head xs, length xs))) . group . sort
+  where renderIcon :: (GitIcon, Int) -> String
+        renderIcon ((color, xs), 1) = bold ++ color ++ xs ++ reset
+        renderIcon ((color, xs), n) = bold ++ color ++ xs ++ show (n) ++ reset
+
+
+mkGitIcon :: String -> GitIcon
+mkGitIcon (' ':'M':_) =  (blue  , "±" )
+mkGitIcon (_  :'D':_) =  (red   , "-" )
+mkGitIcon ('M':' ':_) =  (green , "⁕" )
+mkGitIcon ('A':' ':_) =  (green , "✛" )
+mkGitIcon ('M':_  :_) =  (cyan  , "⁕" )
+mkGitIcon ('A':_  :_) =  (cyan  , "✛" )
+mkGitIcon ('C':_  :_) =  (cyan  , "•" )
+mkGitIcon ('R':_  :_) =  (red   , "ʀ" )
+mkGitIcon ('D':_  :_) =  (red   , "—" )
+mkGitIcon ('?':'?':_) =  (reset , "…" )
+mkGitIcon  _          =  (reset , "")
 
 
 replace :: String -> String -> String -> String
