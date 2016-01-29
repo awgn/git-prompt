@@ -67,14 +67,14 @@ gitBranchName colorname =
 
 gitSymbolicRef :: String -> IO (Maybe String)
 gitSymbolicRef color = do
-    xs <- gitCommand ["symbolic-ref", "HEAD"]
+    xs <- git ["symbolic-ref", "HEAD"]
     return $ if null xs then Nothing
                         else Just (color ++ bold ++ filter (/= '\n') (last $ splitOn "/" xs) ++ reset)
 
 
 gitNameRev :: String -> IO (Maybe String)
 gitNameRev color = do
-    xs <- liftIO $ gitCommand ["name-rev", "--name-only", "HEAD"]
+    xs <- liftIO $ git ["name-rev", "--name-only", "HEAD"]
     return $ if null xs then Nothing
                         else Just (replace "~" (reset ++ bold ++ "↓" ++ reset) (color ++ bold ++ init xs ++ reset))
 
@@ -82,7 +82,7 @@ gitNameRev color = do
 -- 2: gitDescribe
 
 gitDescribe :: MaybeIO String
-gitDescribe = liftIO (gitCommand ["describe", "--abbrev=6", "--dirty=!", "--always", "--all", "--long"]) >>= \xs ->
+gitDescribe = liftIO (git ["describe", "--abbrev=6", "--always", "--all", "--long"]) >>= \xs ->
     failIfNull xs >> return (filter (/= '\n') xs)
 
 
@@ -91,7 +91,7 @@ gitDescribe = liftIO (gitCommand ["describe", "--abbrev=6", "--dirty=!", "--alwa
 
 gitAheadIcon :: MaybeIO String
 gitAheadIcon = do
-    xs <- liftIO $ gitCommand ["rev-list", "--count", "HEAD@{upstream}..HEAD"]
+    xs <- liftIO $ git ["rev-list", "--count", "HEAD@{upstream}..HEAD"]
     return (if null xs || read xs == (0 :: Integer)
                then ""
                else bold ++ "↑" ++ reset ++ show(read xs :: Integer))
@@ -100,14 +100,14 @@ gitAheadIcon = do
 -- 4: gitStatusIcon
 
 gitStatusIcon :: MaybeIO String
-gitStatusIcon = liftIO $ mergeIcons . map mkGitIcon . lines <$> gitCommand ["status", "--porcelain"]
+gitStatusIcon = liftIO $ mergeIcons . map mkGitIcon . lines <$> git ["status", "--porcelain"]
 
 
 -- 5: gitStashCounter:
 
 gitStashCounter:: MaybeIO String
 gitStashCounter = do
-    n <- liftIO $ length . lines <$> gitCommand ["stash", "list"]
+    n <- liftIO $ length . lines <$> git ["stash", "list"]
     if n == 0 then return ""
               else return $ bold ++ "≡" ++ show n ++ reset
 
@@ -141,8 +141,8 @@ replace :: String -> String -> String -> String
 replace x y xs =  intercalate y $ splitOn x xs
 
 
-gitCommand :: [String] -> IO String
-gitCommand arg = readProcessWithExitCode "git" arg [] >>= \(_,x,_) -> return x
+git :: [String] -> IO String
+git arg = readProcessWithExitCode "git" arg [] >>= \(_,x,_) -> return x
 
 
 failIfNull :: String -> MaybeIO ()
