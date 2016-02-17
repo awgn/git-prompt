@@ -20,8 +20,6 @@
 module Prompt.Git ( mkPrompt ) where
 
 import System.Process
-import System.Directory
-import System.Environment
 
 import Control.Monad
 import Control.Monad.Trans
@@ -117,10 +115,10 @@ type GitIcon = (Color, String)
 
 
 mergeIcons :: [GitIcon] -> String
-mergeIcons = concat . map (renderIcon . (\xs -> (head xs, length xs))) . group . sort
+mergeIcons = concatMap (renderIcon . (\xs -> (head xs, length xs))) . group . sort
   where renderIcon :: (GitIcon, Int) -> String
         renderIcon ((color, xs), 1) = bold ++ color ++ xs ++ reset
-        renderIcon ((color, xs), n) = bold ++ color ++ xs ++ show (n) ++ reset
+        renderIcon ((color, xs), n) = bold ++ color ++ xs ++ show n ++ reset
 
 
 mkGitIcon :: String -> GitIcon

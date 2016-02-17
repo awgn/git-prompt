@@ -17,20 +17,7 @@
 --
 
 
-import System.Process
-import System.Directory
 import System.Environment
-
-import Control.Monad
-import Control.Monad.Trans
-import Control.Monad.Trans.Maybe
-
-import Control.Applicative
-import Data.Maybe
-import Data.List
-import Data.List.Split
-
-import Colors
 import Prompt.Git as Git
 
 
