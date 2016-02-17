@@ -24,6 +24,7 @@ import System.Process
 import Control.Monad
 import Control.Monad.Trans
 import Control.Monad.Trans.Maybe
+import qualified Control.Monad.Parallel as P
 
 import Control.Applicative
 import Data.Maybe
@@ -38,7 +39,7 @@ type MaybeIO = MaybeT IO
 mkPrompt :: String -> IO String
 mkPrompt colorname = do
     prompt <- runMaybeT
-        (sequence [gitBranchName colorname,
+        (P.sequence [gitBranchName colorname,
                    return "|",
                    gitDescribe,
                    return "|",

@@ -2,7 +2,7 @@
 -- see http://haskell.org/cabal/users-guide/
 
 name:                   git-prompt
-version:                1.6
+version:                1.7
 
 license-file:           LICENSE
 author:                 Nicola Bonelli
@@ -22,5 +22,8 @@ Executable git-prompt
                         split,
                         transformers,
                         mtl,
+                        monad-parallel,
                         unix
     default-language:   Haskell2010
+    Ghc-options:        -O2 -Wall
+
