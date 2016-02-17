@@ -2,19 +2,20 @@ Git-prompt
 ==========
 
 git-prompt is a shell-independent utility that renders information from a local git repository.
+It is written in Haskell.
 
 Build
 -----
 To build this package run the following commands:
 
-* cabal install --only-dep
+```
+cabal install --only-dep
+runhaskell Setup configure --user
+runhaskell Setup build
+runhaskell Setup install
+```
 
-* runhaskell Setup configure --user
-* runhaskell Setup build
-* runhaskell Setup install
-
-
-This will install the binary in ~/.cabal/bin/ directory.
+This will install the binary `git-prompt` in ~/.cabal/bin/ directory.
 
 Bash
 ----
