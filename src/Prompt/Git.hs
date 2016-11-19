@@ -17,6 +17,7 @@
 --
 
 
+
 module Prompt.Git ( mkPrompt ) where
 
 import System.Process
@@ -38,44 +39,44 @@ type MaybeIO = MaybeT IO
 
 mkPrompt :: String -> IO String
 mkPrompt colorname = do
-    prompt <- runMaybeT
-        (P.sequence [gitBranchName colorname,
-                   return "|",
-                   gitDescribe,
-                   return "|",
-                   gitStashCounter >>= sepPrompt,
-                   gitAheadIcon,
-                   gitStatusIcon
-                   ])
-    return $ if isJust prompt
-                then bold ++ "(" ++ reset ++ fromJust (fmap concat prompt) ++ bold ++ ")" ++ reset
-                else ""
+    promptList <- runMaybeT
+        (P.sequence [ gitBranchName colorname
+                    , return "|"
+                    , gitDescribe
+                    , return "|"
+                    , gitStashCounter >>= sepPrompt
+                    , gitAheadIcon
+                    , gitStatusIcon
+                    ])
+    return $ maybe "" (\prompt ->  bold ++ "(" ++ reset ++ concat prompt ++ bold ++ ")" ++ reset) promptList
 
 sepPrompt :: String -> MaybeIO String
-sepPrompt xs = return $ if null xs then xs
-                             else xs ++ "|"
+sepPrompt xs = 
+    return $ if null xs 
+                then xs
+                else xs ++ "|"
 
 
 -- 1: gitBranchName
 
 gitBranchName :: String -> MaybeIO String
 gitBranchName colorname =
-    MaybeT $ liftA2 (<|>) (gitSymbolicRef color) (gitNameRev color)
+    gitSymbolicRef color <|> gitNameRev color
         where color = getColorByName colorname
 
 
-gitSymbolicRef :: String -> IO (Maybe String)
+gitSymbolicRef :: String -> MaybeIO String
 gitSymbolicRef color = do
-    xs <- git ["symbolic-ref", "HEAD"]
-    return $ if null xs then Nothing
-                        else Just (color ++ bold ++ filter (/= '\n') (last $ splitOn "/" xs) ++ reset)
+    xs <- liftIO $ git ["symbolic-ref", "HEAD"]
+    MaybeT $ return $ if null xs then Nothing
+                                 else Just (color ++ bold ++ filter (/= '\n') (last $ splitOn "/" xs) ++ reset)
 
 
-gitNameRev :: String -> IO (Maybe String)
+gitNameRev :: String -> MaybeIO String
 gitNameRev color = do
     xs <- liftIO $ git ["name-rev", "--name-only", "HEAD"]
-    return $ if null xs then Nothing
-                        else Just (replace "~" (reset ++ bold ++ "↓" ++ reset) (color ++ bold ++ init xs ++ reset))
+    MaybeT $ return $ if null xs then Nothing
+                                 else Just (replace "~" (reset ++ bold ++ "↓" ++ reset) (color ++ bold ++ init xs ++ reset))
 
 
 -- 2: gitDescribe
