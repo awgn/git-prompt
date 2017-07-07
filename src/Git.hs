@@ -18,7 +18,7 @@
 
 
 
-module Prompt.Git ( mkPrompt ) where
+module Git ( mkPrompt ) where
 
 import System.Process
 

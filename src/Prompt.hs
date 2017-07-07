@@ -18,8 +18,7 @@
 
 
 import System.Environment
-import Prompt.Git as Git
-
+import qualified Git as Git
 
 main :: IO ()
 main = getArgs >>= dispatch
