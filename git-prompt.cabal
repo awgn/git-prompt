@@ -23,7 +23,8 @@ Executable git-prompt
                         transformers,
                         mtl,
                         monad-parallel,
-                        unix
+                        unix,
+                        filepath
     default-language:   Haskell2010
     Ghc-options:        -O2 -Wall
 

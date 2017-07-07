@@ -21,6 +21,7 @@
 module Git ( mkPrompt ) where
 
 import System.Process
+import System.FilePath
 
 import Control.Monad
 import Control.Monad.Trans
@@ -30,6 +31,7 @@ import qualified Control.Monad.Parallel as P
 import Control.Applicative
 import Data.Maybe
 import Data.List
+import Data.Function
 import Data.List.Split
 
 import Colors
@@ -47,12 +49,14 @@ mkPrompt colorname = do
                     , gitStashCounter >>= sepPrompt
                     , gitAheadIcon
                     , gitStatusIcon
+                    , return "|"
+                    , gitListFiles
                     ])
     return $ maybe "" (\prompt ->  bold ++ "(" ++ reset ++ concat prompt ++ bold ++ ")" ++ reset) promptList
 
 sepPrompt :: String -> MaybeIO String
-sepPrompt xs = 
-    return $ if null xs 
+sepPrompt xs =
+    return $ if null xs
                 then xs
                 else xs ++ "|"
 
@@ -111,30 +115,39 @@ gitStashCounter = do
     if n == 0 then return ""
               else return $ bold ++ "≡" ++ show n ++ reset
 
+-- 6: gitListFiles
+
+gitListFiles :: MaybeIO String
+gitListFiles = liftIO $ intercalate "|" . map (takeFileName . drop 3) . (filter (not .("??" `isPrefixOf`)) ) . lines <$> git ["status", "--porcelain"]
+
 
 type Color = String
-type GitIcon = (Color, String)
+
+data GitIcon = GitIcon {
+      colorIcon :: Color
+    , icon      :: String
+    } deriving (Eq, Ord)
 
 
 mergeIcons :: [GitIcon] -> String
-mergeIcons = concatMap (renderIcon . (\xs -> (head xs, length xs))) . group . sort
+mergeIcons = concatMap (renderIcon . (\xs -> (head xs, length xs))) . groupBy ((==) `on` icon) . sortBy (compare `on` icon)
   where renderIcon :: (GitIcon, Int) -> String
-        renderIcon ((color, xs), 1) = bold ++ color ++ xs ++ reset
-        renderIcon ((color, xs), n) = bold ++ color ++ xs ++ show n ++ reset
+        renderIcon ((GitIcon color xs), 1) = bold ++ color ++ xs ++ reset
+        renderIcon ((GitIcon color xs), n) = bold ++ color ++ xs ++ show n ++ reset
 
 
 mkGitIcon :: String -> GitIcon
-mkGitIcon (' ':'M':_) =  (blue  , "±" )
-mkGitIcon (_  :'D':_) =  (red   , "-" )
-mkGitIcon ('M':' ':_) =  (green , "⁕" )
-mkGitIcon ('A':' ':_) =  (green , "✛" )
-mkGitIcon ('M':_  :_) =  (cyan  , "⁕" )
-mkGitIcon ('A':_  :_) =  (cyan  , "✛" )
-mkGitIcon ('C':_  :_) =  (cyan  , "•" )
-mkGitIcon ('R':_  :_) =  (red   , "ʀ" )
-mkGitIcon ('D':_  :_) =  (red   , "—" )
-mkGitIcon ('?':'?':_) =  (reset , "…" )
-mkGitIcon  _          =  (reset , "")
+mkGitIcon (' ':'M':_) =  GitIcon blue  "±"
+mkGitIcon (_  :'D':_) =  GitIcon red   "-"
+mkGitIcon ('M':' ':_) =  GitIcon green "⁕"
+mkGitIcon ('A':' ':_) =  GitIcon green "✛"
+mkGitIcon ('M':_  :_) =  GitIcon cyan  "⁕"
+mkGitIcon ('A':_  :_) =  GitIcon cyan  "✛"
+mkGitIcon ('C':_  :_) =  GitIcon cyan  "•"
+mkGitIcon ('R':_  :_) =  GitIcon red   "ʀ"
+mkGitIcon ('D':_  :_) =  GitIcon red   "—"
+mkGitIcon ('?':'?':_) =  GitIcon reset "…"
+mkGitIcon  _          =  GitIcon reset ""
 
 
 replace :: String -> String -> String -> String
