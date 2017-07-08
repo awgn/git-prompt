@@ -125,10 +125,13 @@ gitStashCounter = do
 -- 6: gitListFiles
 
 gitListFiles :: MaybeIO String
-gitListFiles = liftIO $ intercalate "|" . takeFirst 10 . map (takeFileName . drop 3) . (filter (not .("??" `isPrefixOf`)) ) . lines <$> git ["status", "--porcelain"]
-    where takeFirst n xs = if length xs > n
-                                then take n xs <> ["…"]
-                                else xs
+gitListFiles = liftIO $ do
+    (xs, ys) <- partition ("??" `isPrefixOf`) . lines <$> git ["status", "--porcelain"]
+    return $ (intercalate "|" . filter (not.null)) [ bold <> (intercalate "," . takeFirst 5 . map (takeFileName . drop 3) $ ys) <> reset
+                                                   , intercalate "," . takeFirst 5 . map (drop 3) $ xs ]
+        where  takeFirst n xs = if length xs > n
+                                    then take n xs <> ["…"]
+                                    else xs
 
 type Color = String
 
