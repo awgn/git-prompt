@@ -20,7 +20,7 @@ module Colors where
 
 import System.Console.ANSI
 
-magenta, blue, red, cyan, green, bold, reset :: String
+magenta, blue, red, cyan, green, bold, reset, yellow, white :: String
 
 magenta = setSGRCode [SetColor Foreground Vivid Magenta]
 blue    = setSGRCode [SetColor Foreground Vivid Blue]

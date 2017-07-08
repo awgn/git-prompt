@@ -29,10 +29,10 @@ import Control.Monad.Trans.Maybe
 import qualified Control.Monad.Parallel as P
 
 import Control.Applicative
-import Data.Maybe
 import Data.List
 import Data.Function
 import Data.List.Split
+import Data.Monoid
 
 import Colors
 
@@ -46,20 +46,25 @@ mkPrompt colorname = do
                     , return "|"
                     , gitDescribe
                     , return "|"
-                    , gitStashCounter >>= sepPrompt
+                    , gitStashCounter >>= sepPostfix
                     , gitAheadIcon
                     , gitStatusIcon
-                    , return "|"
-                    , gitListFiles
+                    , sepPrefix =<< gitListFiles
                     ])
     return $ maybe "" (\prompt ->  bold ++ "(" ++ reset ++ concat prompt ++ bold ++ ")" ++ reset) promptList
 
-sepPrompt :: String -> MaybeIO String
-sepPrompt xs =
+
+sepPostfix :: String -> MaybeIO String
+sepPostfix xs =
     return $ if null xs
                 then xs
-                else xs ++ "|"
+                else xs <> "|"
 
+sepPrefix :: String -> MaybeIO String
+sepPrefix xs =
+    return $ if null xs
+                then xs
+                else "|" <> xs
 
 -- 1: gitBranchName
 
@@ -118,14 +123,16 @@ gitStashCounter = do
 -- 6: gitListFiles
 
 gitListFiles :: MaybeIO String
-gitListFiles = liftIO $ intercalate "|" . map (takeFileName . drop 3) . (filter (not .("??" `isPrefixOf`)) ) . lines <$> git ["status", "--porcelain"]
-
+gitListFiles = liftIO $ intercalate "|" . takeFirst 10 . map (takeFileName . drop 3) . (filter (not .("??" `isPrefixOf`)) ) . lines <$> git ["status", "--porcelain"]
+    where takeFirst n xs = if length xs > n
+                                then take n xs <> ["…"]
+                                else xs
 
 type Color = String
 
 data GitIcon = GitIcon {
-      colorIcon :: Color
-    , icon      :: String
+        _colorIcon :: Color
+        , icon     :: String
     } deriving (Eq, Ord)
 
 

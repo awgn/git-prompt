@@ -16,6 +16,7 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 --
 
+module Main where
 
 import System.Environment
 import qualified Git as Git
@@ -25,6 +26,6 @@ main = getArgs >>= dispatch
 
 dispatch :: [String] -> IO ()
 dispatch [xs]  =  Git.mkPrompt xs >>= putStr
-dispatch _     =  error "git-prompt [blue|red|green|cyan|magenta|yellow|white]"
+dispatch _     =  errorWithoutStackTrace "git-prompt [blue|red|green|cyan|magenta|yellow|white]"
 
 
