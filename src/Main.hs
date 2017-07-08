@@ -16,10 +16,10 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 --
 
-module Main where
+module Main (module Main) where
 
 import System.Environment
-import qualified Git as Git
+import qualified Git
 
 main :: IO ()
 main = getArgs >>= dispatch

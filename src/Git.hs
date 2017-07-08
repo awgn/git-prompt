@@ -26,6 +26,8 @@ import System.FilePath
 import Control.Monad
 import Control.Monad.Trans
 import Control.Monad.Trans.Maybe
+import Control.Arrow
+
 import qualified Control.Monad.Parallel as P
 
 import Control.Applicative
@@ -137,10 +139,10 @@ data GitIcon = GitIcon {
 
 
 mergeIcons :: [GitIcon] -> String
-mergeIcons = concatMap (renderIcon . (\xs -> (head xs, length xs))) . groupBy ((==) `on` icon) . sortBy (compare `on` icon)
+mergeIcons = concatMap (renderIcon . (head &&& length)) . groupBy ((==) `on` icon) . sortBy (compare `on` icon)
   where renderIcon :: (GitIcon, Int) -> String
-        renderIcon ((GitIcon color xs), 1) = bold ++ color ++ xs ++ reset
-        renderIcon ((GitIcon color xs), n) = bold ++ color ++ xs ++ show n ++ reset
+        renderIcon (GitIcon color xs, 1) = bold ++ color ++ xs ++ reset
+        renderIcon (GitIcon color xs, n) = bold ++ color ++ xs ++ show n ++ reset
 
 
 mkGitIcon :: String -> GitIcon
