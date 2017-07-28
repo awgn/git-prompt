@@ -48,10 +48,10 @@ mkPrompt colorname = do
                     , sepPrefix "|" =<< gitDescribe
                     , sepPrefix "|" =<< gitStashCounter
                     , sepPrefix "|" =<< gitAheadIcon
-                    , sepPrefix "|" =<< gitStatusIcon
+                    , gitStatusIcon
                     , return "|"
-                    , gitListFiles ("??" `isPrefixOf`)
-                    , sepPrefix "|" =<< gitListFiles ("??" `isNotPrefixOf`)
+                    , gitListFiles ("??" `isNotPrefixOf`) True
+                    , sepPrefix "|" =<< gitListFiles ("??" `isPrefixOf`) False
                     ])
     return $ maybe "" (\prompt -> bold ++ "(" ++ reset ++ concat prompt ++ bold ++ ")" ++ reset) promptList
 
@@ -123,10 +123,13 @@ gitStashCounter = do
 -- 6: gitListFiles
 
 
-gitListFiles :: (String -> Bool) -> MaybeIO String
-gitListFiles filt = liftIO $ do
-    xs <- (filter filt) . lines <$> git ["status", "--porcelain"]
-    return $ intercalate "," . takeFirst 5 . (map (takeFileName . drop 3)) $ xs
+gitListFiles :: (String -> Bool) -> Bool -> MaybeIO String
+gitListFiles filt bl = liftIO $ do
+    xs <- filter filt . lines <$> git ["status", "--porcelain"]
+    let r = intercalate "," . takeFirst 5 . map (takeFileName . drop 3) $ xs
+    if not bl || null r
+       then return r
+       else return $ bold <> r <> reset
         where  takeFirst n xs = if length xs > n
                                     then take n xs <> ["…"]
                                     else xs
