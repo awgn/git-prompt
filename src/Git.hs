@@ -45,28 +45,26 @@ mkPrompt :: String -> IO String
 mkPrompt colorname = do
     promptList <- runMaybeT
         (P.sequence [ gitBranchName colorname
+                    , sepPrefix "|" =<< gitDescribe
+                    , sepPrefix "|" =<< gitStashCounter
+                    , sepPrefix "|" =<< gitAheadIcon
+                    , sepPrefix "|" =<< gitStatusIcon
                     , return "|"
-                    , gitDescribe
-                    , return "|"
-                    , gitStashCounter >>= sepPostfix
-                    , gitAheadIcon
-                    , gitStatusIcon
-                    , sepPrefix =<< gitListFiles
+                    , gitListFiles ("??" `isPrefixOf`)
+                    , sepPrefix "|" =<< gitListFiles ("??" `isNotPrefixOf`)
                     ])
-    return $ maybe "" (\prompt ->  bold ++ "(" ++ reset ++ concat prompt ++ bold ++ ")" ++ reset) promptList
+    return $ maybe "" (\prompt -> bold ++ "(" ++ reset ++ concat prompt ++ bold ++ ")" ++ reset) promptList
 
 
-sepPostfix :: String -> MaybeIO String
-sepPostfix xs =
+isNotPrefixOf :: Eq a => [a] -> [a] -> Bool
+isNotPrefixOf x y = not $ x `isPrefixOf` y
+
+
+sepPrefix :: String -> String -> MaybeIO String
+sepPrefix sep xs =
     return $ if null xs
                 then xs
-                else xs <> "|"
-
-sepPrefix :: String -> MaybeIO String
-sepPrefix xs =
-    return $ if null xs
-                then xs
-                else "|" <> xs
+                else sep <> xs
 
 -- 1: gitBranchName
 
@@ -124,14 +122,16 @@ gitStashCounter = do
 
 -- 6: gitListFiles
 
-gitListFiles :: MaybeIO String
-gitListFiles = liftIO $ do
-    (xs, ys) <- partition ("??" `isPrefixOf`) . lines <$> git ["status", "--porcelain"]
-    return $ (intercalate "|" . filter (not.null)) [ bold <> (intercalate "," . takeFirst 5 . map (takeFileName . drop 3) $ ys) <> reset
-                                                   , intercalate "," . takeFirst 5 . map (drop 3) $ xs ]
+
+gitListFiles :: (String -> Bool) -> MaybeIO String
+gitListFiles filt = liftIO $ do
+    xs <- (filter filt) . lines <$> git ["status", "--porcelain"]
+    return $ intercalate "," . takeFirst 5 . (map (takeFileName . drop 3)) $ xs
         where  takeFirst n xs = if length xs > n
                                     then take n xs <> ["…"]
                                     else xs
+
+
 
 type Color = String
 
