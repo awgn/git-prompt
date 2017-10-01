@@ -25,6 +25,22 @@ stack install
 This will build and install the binary `GitPrompt` in either ~/.cabal/bin/ or
 ~/.local/bin/ directory.
 
+Usage
+-----
+
+```
+GitPrompt!
+
+Usage: GitPrompt [-p|--path PATH] [-t|--theme COLOR] [-s|--short] [-V|--version]
+
+Available options:
+  -h,--help                Show this help text
+  -p,--path PATH           Specify the git-rository path ($PWD by default)
+  -t,--theme COLOR         Specify the color theme
+  -s,--short               Use short mode
+  -V,--version             Print version
+```
+
 
 Bash
 ----
