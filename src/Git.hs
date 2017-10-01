@@ -16,12 +16,15 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 --
 
+{-# LANGUAGE ViewPatterns #-}
 
 
 module Git ( mkPrompt ) where
 
 import System.Process
 import System.FilePath
+import System.Directory
+import System.IO (FilePath)
 
 import Control.Monad
 import Control.Monad.Trans
@@ -31,6 +34,9 @@ import Control.Arrow
 import qualified Control.Monad.Parallel as P
 
 import Control.Applicative
+import Control.Exception
+
+import Data.Maybe
 import Data.List
 import Data.Function
 import Data.List.Split
@@ -41,19 +47,51 @@ import Colors
 type MaybeIO = MaybeT IO
 
 
-mkPrompt :: String -> IO String
-mkPrompt colorname = do
-    promptList <- runMaybeT
-        (P.sequence [ gitBranchName colorname
-                    , sepPrefix "|" =<< gitDescribe
-                    , sepPrefix "|" =<< gitStashCounter
-                    , sepPrefix "|" =<< gitAheadIcon
-                    , gitStatusIcon
-                    , return "|"
-                    , gitListFiles ("??" `isNotPrefixOf`) True
-                    , sepPrefix "|" =<< gitListFiles ("??" `isPrefixOf`) False
-                    ])
-    return $ maybe "" (\prompt -> bold ++ "(" ++ reset ++ concat prompt ++ bold ++ ")" ++ reset) promptList
+mkPrompt :: Bool -> Maybe String -> Maybe FilePath -> IO String
+mkPrompt short Nothing path =
+
+    withPath path $ do
+        promptList <- runMaybeT
+            (P.sequence $ [ gitBranchName
+                          , sepPrefix "|" =<< gitDescribe
+                          , sepPrefix "|" =<< gitStashCounter
+                          , sepPrefix "|" =<< gitAheadIcon
+                          , gitStatusIcon False
+                          ]
+                        <> if not short
+                            then [ return "|"
+                                 , gitListFiles ("??" `isNotPrefixOf`) False
+                                 , sepPrefix "|" =<< gitListFiles ("??" `isPrefixOf`) False
+                                 ]
+                            else [])
+
+        return $ maybe "" (\prompt -> "(" <> concat prompt <> ")") promptList
+
+mkPrompt short (Just theme) path =
+    withPath path $ do
+        promptList <- runMaybeT
+            (P.sequence $ [ boldS =<< colorS theme =<< gitBranchName
+                          , sepPrefix "|" =<< gitDescribe
+                          , sepPrefix "|" =<< boldS =<< gitStashCounter
+                          , sepPrefix "|" =<< boldS =<< gitAheadIcon
+                          , gitStatusIcon True
+                          ]
+                        <> if not short
+                            then [ return "|"
+                                 , gitListFiles ("??" `isNotPrefixOf`) True
+                                 , sepPrefix "|" =<< gitListFiles ("??" `isPrefixOf`) False
+                                 ]
+                            else [])
+
+        return $ maybe "" (\prompt -> bold <> "(" <> reset <> concat prompt <> bold <> ")" <> reset) promptList
+
+
+withPath :: Maybe FilePath -> IO a -> IO a
+withPath Nothing action = action
+withPath (Just repo) action = getCurrentDirectory >>= (\pwd -> bracket
+                                                         (setCurrentDirectory repo)
+                                                         (\_ -> setCurrentDirectory pwd)
+                                                         (\_ -> action))
 
 
 isNotPrefixOf :: Eq a => [a] -> [a] -> Bool
@@ -61,39 +99,44 @@ isNotPrefixOf x y = not $ x `isPrefixOf` y
 
 
 sepPrefix :: String -> String -> MaybeIO String
-sepPrefix sep xs =
-    return $ if null xs
-                then xs
-                else sep <> xs
+sepPrefix _ "" = return ""
+sepPrefix sep xs = return $ sep <> xs
+
+
+boldS :: (Monad m) => String -> m String
+boldS "" = return ""
+boldS xs = return $ bold <> xs <> reset
+
+
+colorS :: (Monad m) => String -> String -> m String
+colorS _ "" = return ""
+colorS color xs = return $ getColorByName color <> xs <> reset
+
 
 -- 1: gitBranchName
 
-gitBranchName :: String -> MaybeIO String
-gitBranchName colorname =
-    gitSymbolicRef color <|> gitNameRev color
-        where color = getColorByName colorname
+gitBranchName :: MaybeIO String
+gitBranchName = gitSymbolicRef <|> gitNameRev
 
 
-gitSymbolicRef :: String -> MaybeIO String
-gitSymbolicRef color = do
+gitSymbolicRef :: MaybeIO String
+gitSymbolicRef = do
     xs <- liftIO $ git ["symbolic-ref", "HEAD"]
     MaybeT $ return $ if null xs then Nothing
-                                 else Just (color ++ bold ++ filter (/= '\n') (last $ splitOn "/" xs) ++ reset)
+                                 else Just (filter (/= '\n') (last $ splitOn "/" xs))
 
 
-gitNameRev :: String -> MaybeIO String
-gitNameRev color = do
+gitNameRev :: MaybeIO String
+gitNameRev = do
     xs <- liftIO $ git ["name-rev", "--name-only", "HEAD"]
     MaybeT $ return $ if null xs then Nothing
-                                 else Just (replace "~" (reset ++ bold ++ "↓" ++ reset) (color ++ bold ++ init xs ++ reset))
-
+                                 else Just (replace "~" ("↓") (init xs))
 
 -- 2: gitDescribe
 
 gitDescribe :: MaybeIO String
 gitDescribe = liftIO (git ["describe", "--abbrev=6", "--always", "--all", "--long"]) >>= \xs ->
     failIfNull xs >> return (filter (/= '\n') xs)
-
 
 
 -- 3: gitAheadIcon
@@ -103,13 +146,13 @@ gitAheadIcon = do
     xs <- liftIO $ git ["rev-list", "--count", "HEAD@{upstream}..HEAD"]
     return (if null xs || read xs == (0 :: Integer)
                then ""
-               else bold ++ "↑" ++ reset ++ show(read xs :: Integer))
+               else "↑" <> show(read xs :: Integer))
 
 
 -- 4: gitStatusIcon
 
-gitStatusIcon :: MaybeIO String
-gitStatusIcon = liftIO $ mergeIcons . map mkGitIcon . lines <$> git ["status", "--porcelain"]
+gitStatusIcon :: Bool -> MaybeIO String
+gitStatusIcon color = liftIO $ mergeIcons . map (mkGitIcon color) . lines <$> git ["status", "--porcelain"]
 
 
 -- 5: gitStashCounter:
@@ -118,7 +161,7 @@ gitStashCounter:: MaybeIO String
 gitStashCounter = do
     n <- liftIO $ length . lines <$> git ["stash", "list"]
     if n == 0 then return ""
-              else return $ bold ++ "≡" ++ show n ++ reset
+              else return $ "≡" <> show n
 
 -- 6: gitListFiles
 
@@ -134,12 +177,10 @@ gitListFiles filt bl = liftIO $ do
                                     then take n xs <> ["…"]
                                     else xs
 
-
-
 type Color = String
 
 data GitIcon = GitIcon {
-        _colorIcon :: Color
+        _colorIcon :: Maybe Color
         , icon     :: String
     } deriving (Eq, Ord)
 
@@ -147,22 +188,29 @@ data GitIcon = GitIcon {
 mergeIcons :: [GitIcon] -> String
 mergeIcons = concatMap (renderIcon . (head &&& length)) . groupBy ((==) `on` icon) . sortBy (compare `on` icon)
   where renderIcon :: (GitIcon, Int) -> String
-        renderIcon (GitIcon color xs, 1) = bold ++ color ++ xs ++ reset
-        renderIcon (GitIcon color xs, n) = bold ++ color ++ xs ++ show n ++ reset
+        renderIcon (GitIcon Nothing xs, 1)      = xs
+        renderIcon (GitIcon Nothing xs, n)      = xs <> show n
+        renderIcon (GitIcon (Just color) xs, 1) = bold <> color <> xs <> reset
+        renderIcon (GitIcon (Just color) xs, n) = bold <> color <> xs <> show n <> reset
 
 
-mkGitIcon :: String -> GitIcon
-mkGitIcon (' ':'M':_) =  GitIcon blue  "±"
-mkGitIcon (_  :'D':_) =  GitIcon red   "-"
-mkGitIcon ('M':' ':_) =  GitIcon green "⁕"
-mkGitIcon ('A':' ':_) =  GitIcon green "✛"
-mkGitIcon ('M':_  :_) =  GitIcon cyan  "⁕"
-mkGitIcon ('A':_  :_) =  GitIcon cyan  "✛"
-mkGitIcon ('C':_  :_) =  GitIcon cyan  "•"
-mkGitIcon ('R':_  :_) =  GitIcon red   "ʀ"
-mkGitIcon ('D':_  :_) =  GitIcon red   "—"
-mkGitIcon ('?':'?':_) =  GitIcon reset "…"
-mkGitIcon  _          =  GitIcon reset ""
+mkGitIcon :: Bool -> String -> GitIcon
+mkGitIcon c (' ':'M':_) =  GitIcon (c ?? blue ) "±"
+mkGitIcon c (_  :'D':_) =  GitIcon (c ?? red  ) "-"
+mkGitIcon c ('M':' ':_) =  GitIcon (c ?? green) "⁕"
+mkGitIcon c ('A':' ':_) =  GitIcon (c ?? green) "✛"
+mkGitIcon c ('M':_  :_) =  GitIcon (c ?? cyan ) "⁕"
+mkGitIcon c ('A':_  :_) =  GitIcon (c ?? cyan ) "✛"
+mkGitIcon c ('C':_  :_) =  GitIcon (c ?? cyan ) "•"
+mkGitIcon c ('R':_  :_) =  GitIcon (c ?? red  ) "ʀ"
+mkGitIcon c ('D':_  :_) =  GitIcon (c ?? red  ) "—"
+mkGitIcon c ('?':'?':_) =  GitIcon (c ?? reset) "…"
+mkGitIcon c  _          =  GitIcon (c ?? reset) ""
+
+
+(??) :: Bool -> a -> Maybe a
+True  ?? a = Just a
+False ?? _ = Nothing
 
 
 replace :: String -> String -> String -> String

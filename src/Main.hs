@@ -16,16 +16,28 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 --
 
+{-# LANGUAGE RecordWildCards #-}
+
 module Main (module Main) where
 
-import System.Environment
+-- import System.Environment
+
 import qualified Git
+import qualified Paths_GitPrompt as G
+
+import Options
+import Options.Applicative
+
+import Data.Monoid
+import Data.Version (showVersion)
 
 main :: IO ()
-main = getArgs >>= dispatch
+main = execParser opts >>= mainRun
+    where opts = info (helper <*> parseOptions)
+                      (fullDesc <> header "GitPrompt!")
 
-dispatch :: [String] -> IO ()
-dispatch [xs]  =  Git.mkPrompt xs >>= putStr
-dispatch _     =  errorWithoutStackTrace "git-prompt [blue|red|green|cyan|magenta|yellow|white]"
-
+mainRun :: Options -> IO ()
+mainRun Options{..}
+  | version         = putStrLn $ showVersion G.version
+  | otherwise       = Git.mkPrompt shortMode themeColor runPath >>= putStrLn
 

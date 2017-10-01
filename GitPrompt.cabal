@@ -1,5 +1,5 @@
 name:                GitPrompt
-version:             2.0.1
+version:             2.1
 -- synopsis:
 -- description:
 homepage:            https://github.com/githubuser/GitPrompt#readme
@@ -18,6 +18,7 @@ executable GitPrompt
   main-is:             Main.hs
   other-modules:       Git
                        Colors
+                       Options
   default-language:    Haskell2010
   build-depends:       base >=4.6,
                        ansi-terminal,
@@ -28,6 +29,7 @@ executable GitPrompt
                        mtl,
                        monad-parallel,
                        unix,
-                       filepath
+                       filepath,
+                       optparse-applicative
   ghc-options:         -O2 -Wall
 
