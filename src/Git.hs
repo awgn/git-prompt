@@ -36,7 +36,6 @@ import qualified Control.Monad.Parallel as P
 import Control.Applicative
 import Control.Exception
 
-import Data.Maybe
 import Data.List
 import Data.Function
 import Data.List.Split
