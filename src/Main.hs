@@ -31,6 +31,8 @@ import Options.Applicative
 import Data.Monoid
 import Data.Version (showVersion)
 
+import GHC.IO.Encoding
+
 main :: IO ()
 main = execParser opts >>= mainRun
     where opts = info (helper <*> parseOptions)
@@ -39,5 +41,5 @@ main = execParser opts >>= mainRun
 mainRun :: Options -> IO ()
 mainRun Options{..}
   | version         = putStrLn $ showVersion G.version
-  | otherwise       = Git.mkPrompt shortMode themeColor runPath >>= putStrLn
+  | otherwise       = setLocaleEncoding utf8 *> Git.mkPrompt shortMode themeColor runPath >>= putStrLn
 
