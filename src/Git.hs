@@ -16,9 +16,6 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 --
 
-{-# LANGUAGE ViewPatterns #-}
-
-
 module Git ( mkPrompt ) where
 
 import System.Process
@@ -52,15 +49,14 @@ mkPrompt short Nothing path =
     withPath path $ do
         promptList <- runMaybeT
             (P.sequence $ [ gitBranchName
-                          , sepPrefix "|" =<< gitDescribe
                           , sepPrefix "|" =<< gitStashCounter
                           , sepPrefix "|" =<< gitAheadIcon
-                          , gitStatusIcon False
+                          , sepPrefix "|" =<< gitStatusIcon False
+                          , sepPrefix "|" =<< gitDescribe
                           ]
                         <> if not short
                             then [ return "|"
-                                 , gitListFiles ("??" `isNotPrefixOf`) False
-                                 , sepPrefix "|" =<< gitListFiles ("??" `isPrefixOf`) False
+                                 , gitListFiles False
                                  ]
                             else [])
 
@@ -70,15 +66,14 @@ mkPrompt short (Just theme) path =
     withPath path $ do
         promptList <- runMaybeT
             (P.sequence $ [ boldS =<< colorS theme =<< gitBranchName
-                          , sepPrefix "|" =<< gitDescribe
                           , sepPrefix "|" =<< boldS =<< gitStashCounter
                           , sepPrefix "|" =<< boldS =<< gitAheadIcon
-                          , gitStatusIcon True
+                          , sepPrefix "|" =<< gitStatusIcon True
+                          , sepPrefix "|" =<< gitDescribe
                           ]
                         <> if not short
                             then [ return "|"
-                                 , gitListFiles ("??" `isNotPrefixOf`) True
-                                 , sepPrefix "|" =<< gitListFiles ("??" `isPrefixOf`) False
+                                 , gitListFiles True
                                  ]
                             else [])
 
@@ -90,7 +85,7 @@ withPath Nothing action = action
 withPath (Just repo) action = getCurrentDirectory >>= (\pwd -> bracket
                                                          (setCurrentDirectory repo)
                                                          (\_ -> setCurrentDirectory pwd)
-                                                         (\_ -> action))
+                                                         (const action))
 
 
 isNotPrefixOf :: Eq a => [a] -> [a] -> Bool
@@ -129,7 +124,7 @@ gitNameRev :: MaybeIO String
 gitNameRev = do
     xs <- liftIO $ git ["name-rev", "--name-only", "HEAD"]
     MaybeT $ return $ if null xs then Nothing
-                                 else Just (replace "~" ("↓") (init xs))
+                                 else Just (replace "~" "↓" (init xs))
 
 -- 2: gitDescribe
 
@@ -165,16 +160,17 @@ gitStashCounter = do
 -- 6: gitListFiles
 
 
-gitListFiles :: (String -> Bool) -> Bool -> MaybeIO String
-gitListFiles filt bl = liftIO $ do
-    xs <- filter filt . lines <$> git ["status", "--porcelain"]
-    let r = intercalate "," . takeFirst 5 . filter (not.null) . map (takeFileName . drop 3) $ xs
-    if not bl || null r
-       then return r
-       else return $ bold <> r <> reset
-        where  takeFirst n xs = if length xs > n
-                                    then take n xs <> ["…"]
-                                    else xs
+gitListFiles :: Bool -> MaybeIO String
+gitListFiles bl = liftIO $ do
+    ls <- lines <$> git ["status", "--porcelain"]
+    let xs = filter ("??" `isNotPrefixOf`) ls
+    let r = intercalate "," . filter (not.null) . map (takeFileName . drop 3) $ xs
+    let dots = if any ("??" `isPrefixOf`) ls
+                then "…"
+                else ""
+    return $ if not bl || null r
+                then r <> dots
+                else bold <> r <> dots <> reset
 
 type Color = String
 
