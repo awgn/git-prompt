@@ -165,12 +165,9 @@ gitListFiles bl = liftIO $ do
     ls <- lines <$> git ["status", "--porcelain"]
     let xs = filter ("??" `isNotPrefixOf`) ls
     let r = intercalate "," . filter (not.null) . map (takeFileName . drop 3) $ xs
-    let dots = if any ("??" `isPrefixOf`) ls
-                then "…"
-                else ""
     return $ if not bl || null r
-                then r <> dots
-                else bold <> r <> dots <> reset
+                then r
+                else bold <> r <> reset
 
 type Color = String
 
