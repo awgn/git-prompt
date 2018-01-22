@@ -53,13 +53,7 @@ mkPrompt short Nothing path =
                           , sepPrefix "|" =<< gitAheadIcon
                           , sepPrefix "|" =<< gitStatusIcon False
                           , sepPrefix "|" =<< gitDescribe
-                          ]
-                        <> if not short
-                            then [ return "|"
-                                 , gitListFiles False
-                                 ]
-                            else [])
-
+                          ] <> [ sepPrefix "|" =<< gitListFiles False | not short ])
         return $ maybe "" (\prompt -> "(" <> concat prompt <> ")") promptList
 
 mkPrompt short (Just theme) path =
@@ -70,12 +64,7 @@ mkPrompt short (Just theme) path =
                           , sepPrefix "|" =<< boldS =<< gitAheadIcon
                           , sepPrefix "|" =<< gitStatusIcon True
                           , sepPrefix "|" =<< gitDescribe
-                          ]
-                        <> if not short
-                            then [ return "|"
-                                 , gitListFiles True
-                                 ]
-                            else [])
+                          ] <> [ sepPrefix "|" =<< gitListFiles True | not short])
 
         return $ maybe "" (\prompt -> bold <> "(" <> reset <> concat prompt <> bold <> ")" <> reset) promptList
 
