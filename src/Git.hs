@@ -51,6 +51,7 @@ mkPrompt short Nothing path =
             (P.sequence $ [ gitBranchName
                           , sepPrefix "|" =<< gitStashCounter
                           , sepPrefix "|" =<< gitAheadIcon
+                          , sepPrefix "|" =<< gitBehindIcon
                           , sepPrefix "|" =<< gitStatusIcon False
                           , sepPrefix "|" =<< gitDescribe
                           ] <> [ sepPrefix "|" =<< gitListFiles False | not short ])
@@ -62,6 +63,7 @@ mkPrompt short (Just theme) path =
             (P.sequence $ [ boldS =<< colorS theme =<< gitBranchName
                           , sepPrefix "|" =<< boldS =<< gitStashCounter
                           , sepPrefix "|" =<< boldS =<< gitAheadIcon
+                          , sepPrefix "|" =<< boldS =<< gitBehindIcon
                           , sepPrefix "|" =<< gitStatusIcon True
                           , sepPrefix "|" =<< gitDescribe
                           ] <> [ sepPrefix "|" =<< gitListFiles True | not short])
@@ -131,6 +133,13 @@ gitAheadIcon = do
                then ""
                else "↑" <> show(read xs :: Integer))
 
+
+gitBehindIcon :: MaybeIO String
+gitBehindIcon = do
+    xs <- liftIO $ git ["rev-list", "--count", "HEAD..@{upstream}"]
+    return (if null xs || read xs == (0 :: Integer)
+               then ""
+               else "⇣" <> show(read xs :: Integer))
 
 -- 4: gitStatusIcon
 
