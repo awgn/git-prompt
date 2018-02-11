@@ -157,12 +157,16 @@ gitStashCounter = do
 
 -- 6: gitListFiles
 
+takeString :: Int -> [String] -> [String]
+takeString n xs | length xs <= n = xs
+                | otherwise      = take n xs <> ["…"]
+
 
 gitListFiles :: Bool -> MaybeIO String
 gitListFiles bl = liftIO $ do
     ls <- lines <$> git ["status", "--porcelain"]
     let xs = filter ("??" `isNotPrefixOf`) ls
-    let r = intercalate "," . filter (not.null) . map (takeFileName . drop 3) $ xs
+    let r = intercalate "," . takeString 4 . filter (not.null) . map (takeFileName . drop 3) $ xs
     return $ if not bl || null r
                 then r
                 else bold <> r <> reset
