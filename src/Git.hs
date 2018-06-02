@@ -101,15 +101,21 @@ colorS color xs = return $ getColorByName color <> xs <> reset
 -- 1: gitBranchName
 
 gitBranchName :: MaybeIO String
-gitBranchName = gitSymbolicRef <|> gitNameRev
+gitBranchName = gitDescribeExactMatch <|> gitRevParse <|> gitNameRev
 
 
-gitSymbolicRef :: MaybeIO String
-gitSymbolicRef = do
-    xs <- liftIO $ git ["symbolic-ref", "HEAD"]
+gitDescribeExactMatch :: MaybeIO String
+gitDescribeExactMatch = do
+    xs <- liftIO $ git ["describe", "--exact-match"]
     MaybeT $ return $ if null xs then Nothing
-                                 else Just (filter (/= '\n') (last $ splitOn "/" xs))
+                                 else Just (replace "~" "↓" (init xs))
 
+gitRevParse :: MaybeIO String
+gitRevParse = do
+    xs <- liftIO $ git ["rev-parse", "--abbrev-ref", "HEAD"]
+    MaybeT $ return $ if null xs then Nothing
+                                 else case (filter (/= '\n') (last $ splitOn "/" xs)) of
+                                           { "HEAD" -> Nothing; ys -> Just ys }
 
 gitNameRev :: MaybeIO String
 gitNameRev = do

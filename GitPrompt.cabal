@@ -32,5 +32,5 @@ executable GitPrompt
                        unix,
                        filepath,
                        optparse-applicative
-  ghc-options:         -O2 -Wall
+  ghc-options:         -O2 -Wall -threaded -rtsopts -with-rtsopts=-N 
 
