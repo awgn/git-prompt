@@ -36,7 +36,6 @@ import Control.Exception
 import Data.List
 import Data.Function
 import Data.List.Split
-import Data.Monoid
 
 import Colors
 

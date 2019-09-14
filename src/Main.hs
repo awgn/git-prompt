@@ -28,7 +28,6 @@ import qualified Paths_GitPrompt as G
 import Options
 import Options.Applicative
 
-import Data.Monoid
 import Data.Version (showVersion)
 
 import GHC.IO.Encoding
