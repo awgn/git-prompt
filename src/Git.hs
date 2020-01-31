@@ -194,15 +194,22 @@ mergeIcons = concatMap (renderIcon . (head &&& length)) . groupBy ((==) `on` ico
 
 
 mkGitIcon :: Bool -> String -> GitIcon
+mkGitIcon c ('D':'D':_) =  GitIcon (c ?? magenta ) "¦"
+mkGitIcon c ('U':'D':_) =  GitIcon (c ?? magenta ) "-"
+mkGitIcon c ('U':'A':_) =  GitIcon (c ?? cyan    ) "+"
+mkGitIcon c ('A':'A':_) =  GitIcon (c ?? green   ) "ǂ"
+mkGitIcon c ('U':'U':_) =  GitIcon (c ?? blue    ) "≠"
+
 mkGitIcon c (' ':'M':_) =  GitIcon (c ?? blue ) "±"
 mkGitIcon c (_  :'D':_) =  GitIcon (c ?? red  ) "-"
 mkGitIcon c ('M':' ':_) =  GitIcon (c ?? green) "⁕"
 mkGitIcon c ('A':' ':_) =  GitIcon (c ?? green) "✛"
+mkGitIcon c ('D':_  :_) =  GitIcon (c ?? red  ) "—"
+mkGitIcon c ('R':_  :_) =  GitIcon (c ?? red  ) "ʀ"
+mkGitIcon c ('C':_  :_) =  GitIcon (c ?? cyan ) "•"
 mkGitIcon c ('M':_  :_) =  GitIcon (c ?? cyan ) "⁕"
 mkGitIcon c ('A':_  :_) =  GitIcon (c ?? cyan ) "✛"
-mkGitIcon c ('C':_  :_) =  GitIcon (c ?? cyan ) "•"
-mkGitIcon c ('R':_  :_) =  GitIcon (c ?? red  ) "ʀ"
-mkGitIcon c ('D':_  :_) =  GitIcon (c ?? red  ) "—"
+mkGitIcon c ('!':'!':_) =  GitIcon (c ?? reset) "×"
 mkGitIcon c ('?':'?':_) =  GitIcon (c ?? reset) "…"
 mkGitIcon c  _          =  GitIcon (c ?? reset) ""
 
