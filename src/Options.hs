@@ -1,3 +1,6 @@
+{-# LANGUAGE ApplicativeDo #-}
+{-# LANGUAGE RecordWildCards #-}
+
 module Options
     (
       Options(..)
@@ -20,26 +23,27 @@ data Options = Options
 
 
 parseOptions :: Parser Options
-parseOptions = Options
+parseOptions = do 
 
-     <$> optional (strOption ( long "path"
+     runPath <- optional (strOption ( long "path"
            <> short 'p'
            <> metavar "PATH"
            <> help "Specify the git-rository path ($PWD by default)"))
 
-     <*> optional (strOption
+     themeColor <- optional (strOption
             ( long "theme"
            <> short 't'
            <> metavar "COLOR"
            <> help "Specify the color theme"))
 
-     <*> switch
+     shortMode <- switch
             ( long "short"
            <> short 's'
            <> help "Use short mode")
 
-     <*> switch
+     version <- switch
             ( long "version"
            <> short 'V'
            <> help "Print version")
 
+     return  Options{..}

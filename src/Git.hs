@@ -36,6 +36,7 @@ import Control.Exception
 import Data.List
 import Data.Function
 import Data.List.Split
+import Data.Tuple.Select
 
 import Colors
 
@@ -128,7 +129,6 @@ gitDescribe :: MaybeIO String
 gitDescribe = liftIO (git ["describe", "--abbrev=6", "--always", "--all", "--long"]) >>= \xs ->
     failIfNull xs >> return (filter (/= '\n') xs)
 
-
 -- 3: gitAheadIcon
 
 gitAheadIcon :: MaybeIO String
@@ -217,7 +217,7 @@ replace x y xs =  intercalate y $ splitOn x xs
 
 
 git :: [String] -> IO String
-git arg = readProcessWithExitCode "git" arg [] >>= \(_,x,_) -> return x
+git arg = sel2 <$> readProcessWithExitCode "git" arg [] 
 
 
 failIfNull :: String -> MaybeIO ()
