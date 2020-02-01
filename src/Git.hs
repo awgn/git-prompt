@@ -195,10 +195,11 @@ mergeIcons = concatMap (renderIcon . (head &&& length)) . groupBy ((==) `on` ico
 
 mkGitIcon :: Bool -> String -> GitIcon
 mkGitIcon c ('D':'D':_) =  GitIcon (c ?? magenta ) "¦"
+mkGitIcon c ('A':'U':_) =  GitIcon (c ?? green   ) "✛"
 mkGitIcon c ('U':'D':_) =  GitIcon (c ?? magenta ) "-"
 mkGitIcon c ('U':'A':_) =  GitIcon (c ?? cyan    ) "+"
 mkGitIcon c ('A':'A':_) =  GitIcon (c ?? green   ) "ǂ"
-mkGitIcon c ('U':'U':_) =  GitIcon (c ?? blue    ) "≠"
+mkGitIcon c ('U':'U':_) =  GitIcon (c ?? blue    ) "☢"
 
 mkGitIcon c (' ':'M':_) =  GitIcon (c ?? blue ) "±"
 mkGitIcon c (_  :'D':_) =  GitIcon (c ?? red  ) "-"
