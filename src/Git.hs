@@ -21,7 +21,6 @@ module Git ( mkPrompt ) where
 import System.Process
 import System.FilePath
 import System.Directory
-import System.IO (FilePath)
 
 import Control.Monad
 import Control.Monad.Trans
