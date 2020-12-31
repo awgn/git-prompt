@@ -77,30 +77,34 @@ withPath (Just repo) action = getCurrentDirectory >>= (\pwd -> bracket
                                                          (\_ -> setCurrentDirectory pwd)
                                                          (const action))
 
-
 isNotPrefixOf :: Eq a => [a] -> [a] -> Bool
 isNotPrefixOf x y = not $ x `isPrefixOf` y
+{-# INLINE isNotPrefixOf #-}
 
 
 sepPrefix :: String -> String -> MaybeIO String
 sepPrefix _ "" = return ""
 sepPrefix sep xs = return $ sep <> xs
+{-# INLINE sepPrefix #-}
 
 
 boldS :: (Monad m) => String -> m String
 boldS "" = return ""
 boldS xs = return $ bold <> xs <> reset
+{-# INLINE boldS #-}
 
 
 colorS :: (Monad m) => String -> String -> m String
 colorS _ "" = return ""
 colorS color xs = return $ getColorByName color <> xs <> reset
+{-# INLINE colorS #-}
 
 
 -- 1: gitBranchName
 
 gitBranchName :: MaybeIO String
 gitBranchName = gitDescribeExactMatch <|> gitRevParse <|> gitNameRev
+{-# INLINE gitBranchName #-}
 
 
 gitDescribeExactMatch :: MaybeIO String
@@ -149,6 +153,7 @@ gitBehindIcon = do
 
 gitStatusIcon :: Bool -> MaybeIO String
 gitStatusIcon color = liftIO $ mergeIcons . map (mkGitIcon color) . lines <$> git ["status", "--porcelain"]
+{-# INLINE gitStatusIcon #-}
 
 
 -- 5: gitStashCounter:
@@ -164,6 +169,7 @@ gitStashCounter = do
 takeString :: Int -> [String] -> [String]
 takeString n xs | length xs <= n = xs
                 | otherwise      = take n xs <> ["…"]
+{-# INLINE takeString #-}
 
 
 gitListFiles :: Bool -> MaybeIO String
@@ -217,16 +223,19 @@ mkGitIcon c  _          =  GitIcon (c ?? reset) ""
 (??) :: Bool -> a -> Maybe a
 True  ?? a = Just a
 False ?? _ = Nothing
+{-# INLINE (??) #-}
 
 
 replace :: String -> String -> String -> String
 replace x y xs =  intercalate y $ splitOn x xs
+{-# INLINE replace #-}
 
 
 git :: [String] -> IO String
-git arg = sel2 <$> readProcessWithExitCode "git" arg [] 
+git arg = sel2 <$> readProcessWithExitCode "git" arg []
+{-# INLINE git #-}
 
 
 failIfNull :: String -> MaybeIO ()
 failIfNull xs = when (null xs) (fail "null")
-
+{-# INLINE failIfNull #-}
