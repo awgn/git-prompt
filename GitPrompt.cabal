@@ -1,12 +1,12 @@
 name:                GitPrompt
-version:             2.3.2
+version:             2.3.3
 -- synopsis:
 -- description:
-homepage:            https://github.com/githubuser/GitPrompt#readme
+homepage:            https://github.com/awgn/GitPrompt
 license:             BSD3
 license-file:        LICENSE
 author:              Nicola Bonelli
-maintainer:          nicola@pfq.io 
+maintainer:          nicola@pfq.io
 copyright:           2017 Nicola Bonelli
 category:            Shell
 build-type:          Simple
@@ -33,5 +33,10 @@ executable GitPrompt
                        filepath,
                        optparse-applicative,
                        tuple
-  ghc-options:         -O2 -Wall -threaded -rtsopts -with-rtsopts=-N 
-
+  ghc-options:         -O2
+                       -Wall
+                       -funbox-strict-fields
+                       -fwrite-ide-info
+                       -hiedir=.hie
+                       -threaded
+                       -rtsopts "-with-rtsopts=-N -qm"
