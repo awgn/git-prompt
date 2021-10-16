@@ -18,24 +18,22 @@
 
 module Git ( mkPrompt ) where
 
-import System.Process
-import System.FilePath
+import System.Process ( readProcessWithExitCode )
+import System.FilePath ( takeFileName )
 import System.Directory
-
-import Control.Monad
-import Control.Monad.Trans
-import Control.Monad.Trans.Maybe
-import Control.Arrow
+    ( getCurrentDirectory, setCurrentDirectory )
+import Control.Monad ( when )
+import Control.Monad.Trans ( MonadIO(liftIO) )
+import Control.Monad.Trans.Maybe ( MaybeT(..) )
+import Control.Arrow ( Arrow((&&&)) )
 
 import qualified Control.Monad.Parallel as P
-
-import Control.Applicative
-import Control.Exception
-
-import Data.List
-import Data.Function
-import Data.List.Split
-import Data.Tuple.Select
+import Control.Applicative ( Alternative((<|>)) )
+import Control.Exception ( bracket )
+import Data.List ( sortBy, isPrefixOf, groupBy, intercalate )
+import Data.Function ( on )
+import Data.List.Split ( splitOn )
+import Data.Tuple.Select ( Sel2(sel2) )
 
 import Colors
 
@@ -213,10 +211,10 @@ mkGitIcon c ('M':' ':_) =  GitIcon (c ?? green) "⁕"
 mkGitIcon c ('A':' ':_) =  GitIcon (c ?? green) "✛"
 mkGitIcon c ('D':_  :_) =  GitIcon (c ?? red  ) "—"
 mkGitIcon c ('R':_  :_) =  GitIcon (c ?? red  ) "ʀ"
-mkGitIcon c ('C':_  :_) =  GitIcon (c ?? cyan ) "•"
+mkGitIcon c ('C':_  :_) =  GitIcon (c ?? cyan ) "©"
 mkGitIcon c ('M':_  :_) =  GitIcon (c ?? cyan ) "⁕"
 mkGitIcon c ('A':_  :_) =  GitIcon (c ?? cyan ) "✛"
-mkGitIcon c ('!':'!':_) =  GitIcon (c ?? reset) "×"
+mkGitIcon c ('!':'!':_) =  GitIcon (c ?? reset) "a̶"
 mkGitIcon c ('?':'?':_) =  GitIcon (c ?? reset) "…"
 mkGitIcon c  _          =  GitIcon (c ?? reset) ""
 
