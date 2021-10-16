@@ -25,12 +25,13 @@ module Main (module Main) where
 import qualified Git
 import qualified Paths_GitPrompt as G
 
-import Options
+import Options ( parseOptions, Options(..) )
 import Options.Applicative
+    ( fullDesc, header, info, execParser, helper )
 
 import Data.Version (showVersion)
 
-import GHC.IO.Encoding
+import GHC.IO.Encoding ( utf8, setLocaleEncoding )
 
 main :: IO ()
 main = execParser opts >>= mainRun
@@ -41,4 +42,3 @@ mainRun :: Options -> IO ()
 mainRun Options{..}
   | version         = putStrLn $ showVersion G.version
   | otherwise       = setLocaleEncoding utf8 *> Git.mkPrompt shortMode themeColor runPath >>= putStrLn
-

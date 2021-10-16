@@ -146,7 +146,7 @@ gitBehindIcon = do
     xs <- liftIO $ git ["rev-list", "--count", "HEAD..@{upstream}"]
     return (if null xs || read xs == (0 :: Integer)
                then ""
-               else "⇣" <> show(read xs :: Integer))
+               else "↓" <> show(read xs :: Integer))
 
 -- 4: gitStatusIcon
 

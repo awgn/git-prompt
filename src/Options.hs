@@ -22,12 +22,12 @@ data Options = Options
 
 
 parseOptions :: Parser Options
-parseOptions = do 
+parseOptions = do
 
      runPath <- optional (strOption ( long "path"
            <> short 'p'
            <> metavar "PATH"
-           <> help "Specify the git-rository path ($PWD by default)"))
+           <> help "Specify the git-repository path ($PWD by default)"))
 
      themeColor <- optional (strOption
             ( long "theme"
