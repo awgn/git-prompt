@@ -30,10 +30,12 @@ import Control.Arrow ( Arrow((&&&)) )
 import qualified Control.Monad.Parallel as P
 import Control.Applicative ( Alternative((<|>)) )
 import Control.Exception ( bracket )
-import Data.List ( sortBy, isPrefixOf, groupBy, intercalate )
+import Data.List ( sortBy, isPrefixOf, isInfixOf, groupBy, intercalate )
+
 import Data.Function ( on )
 import Data.List.Split ( splitOn )
 import Data.Tuple.Select ( Sel2(sel2) )
+
 
 import Colors
 
@@ -111,7 +113,7 @@ gitCommitName :: MaybeIO String
 gitCommitName = do
     name <- gitBranchName
     cn <- gitNameRev
-    if name == cn
+    if name `isInfixOf` cn || cn `isInfixOf` name
         then return ""
         else return cn
 {-# INLINE gitCommitName #-}
