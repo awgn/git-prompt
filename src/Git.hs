@@ -45,7 +45,8 @@ mkPrompt short Nothing path =
 
     withPath path $ do
         promptList <- runMaybeT
-            (P.sequence $ [ gitBranchName
+            (P.sequence $ [ boldS =<< gitBranchName
+                          , sepPrefix "|" =<< gitCommitName
                           , sepPrefix "|" =<< gitStashCounter
                           , sepPrefix "|" =<< gitAheadIcon
                           , sepPrefix "|" =<< gitBehindIcon
@@ -58,6 +59,7 @@ mkPrompt short (Just theme) path =
     withPath path $ do
         promptList <- runMaybeT
             (P.sequence $ [ boldS =<< colorS theme =<< gitBranchName
+                          , sepPrefix "|" =<< boldS =<< gitCommitName
                           , sepPrefix "|" =<< boldS =<< gitStashCounter
                           , sepPrefix "|" =<< boldS =<< gitAheadIcon
                           , sepPrefix "|" =<< boldS =<< gitBehindIcon
@@ -101,9 +103,26 @@ colorS color xs = return $ getColorByName color <> xs <> reset
 -- 1: gitBranchName
 
 gitBranchName :: MaybeIO String
-gitBranchName = gitDescribeExactMatch <|> gitRevParse <|> gitNameRev
+gitBranchName = gitBranchShow <|> gitDescribeExactMatch <|> gitRevParse
 {-# INLINE gitBranchName #-}
 
+
+gitCommitName :: MaybeIO String
+gitCommitName = do
+    name <- gitBranchName
+    cn <- gitNameRev
+    if name == cn
+        then return ""
+        else return cn
+{-# INLINE gitCommitName #-}
+
+
+gitBranchShow :: MaybeIO String
+gitBranchShow = do
+    xs <- liftIO $ git ["branch", "--show"]
+    MaybeT $ return $ if null xs then Nothing
+                                 else Just (replace "\n" "" xs)
+{-# INLINE gitBranchShow #-}
 
 gitDescribeExactMatch :: MaybeIO String
 gitDescribeExactMatch = do
@@ -123,7 +142,7 @@ gitNameRev :: MaybeIO String
 gitNameRev = do
     xs <- liftIO $ git ["name-rev", "--name-only", "HEAD"]
     MaybeT $ return $ if null xs then Nothing
-                                 else Just (replace "~" "↓" (init xs))
+                                 else Just (replace "tags/" "" (replace "~" "↓" (init xs)))
 
 -- 2: gitDescribe
 
