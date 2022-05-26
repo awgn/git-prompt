@@ -47,27 +47,27 @@ mkPrompt short Nothing path =
 
     withPath path $ do
         promptList <- runMaybeT
-            (P.sequence $ [ boldS =<< gitBranchName
-                          , sepPrefix "|" =<< gitCommitName
-                          , sepPrefix "|" =<< gitStashCounter
-                          , sepPrefix "|" =<< gitAheadIcon
-                          , sepPrefix "|" =<< gitBehindIcon
-                          , sepPrefix "|" =<< gitStatusIcon False
-                          , sepPrefix "|" =<< gitDescribe
-                          ] <> [ sepPrefix "|" =<< gitListFiles False | not short ])
+            (P.sequence $ [ sep "⎇ " =<< boldS =<< gitBranchName
+                          , sep "|" =<< gitCommitName
+                          , sep "|" =<< gitStashCounter
+                          , sep "|" =<< gitAheadIcon
+                          , sep "|" =<< gitBehindIcon
+                          , sep "|" =<< gitStatusIcon False
+                          , sep "|" =<< gitDescribe
+                          ] <> [ sep "|" =<< gitListFiles False | not short ])
         return $ maybe "" (\prompt -> "(" <> concat prompt <> ")") promptList
 
 mkPrompt short (Just theme) path =
     withPath path $ do
         promptList <- runMaybeT
-            (P.sequence $ [ boldS =<< colorS theme =<< gitBranchName
-                          , sepPrefix "|" =<< boldS =<< gitCommitName
-                          , sepPrefix "|" =<< boldS =<< gitStashCounter
-                          , sepPrefix "|" =<< boldS =<< gitAheadIcon
-                          , sepPrefix "|" =<< boldS =<< gitBehindIcon
-                          , sepPrefix "|" =<< gitStatusIcon True
-                          , sepPrefix "|" =<< gitDescribe
-                          ] <> [ sepPrefix "|" =<< gitListFiles True | not short])
+            (P.sequence $ [ sep "⎇ " =<< boldS =<< colorS theme =<< gitBranchName
+                          , sep "|" =<< boldS =<< gitCommitName
+                          , sep "|" =<< boldS =<< gitStashCounter
+                          , sep "|" =<< boldS =<< gitAheadIcon
+                          , sep "|" =<< boldS =<< gitBehindIcon
+                          , sep "|" =<< gitStatusIcon True
+                          , sep "|" =<< gitDescribe
+                          ] <> [ sep "|" =<< gitListFiles True | not short])
 
         return $ maybe "" (\prompt -> bold <> "(" <> reset <> concat prompt <> bold <> ")" <> reset) promptList
 
@@ -84,10 +84,10 @@ isNotPrefixOf x y = not $ x `isPrefixOf` y
 {-# INLINE isNotPrefixOf #-}
 
 
-sepPrefix :: String -> String -> MaybeIO String
-sepPrefix _ "" = return ""
-sepPrefix sep xs = return $ sep <> xs
-{-# INLINE sepPrefix #-}
+sep:: String -> String -> MaybeIO String
+sep _ "" = return ""
+sep s xs = return $ s <> xs
+{-# INLINE sep #-}
 
 
 boldS :: (Monad m) => String -> m String
