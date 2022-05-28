@@ -46,30 +46,32 @@ mkPrompt :: Bool -> Maybe String -> Maybe FilePath -> IO String
 mkPrompt short Nothing path =
 
     withPath path $ do
-        promptList <- runMaybeT
-            (P.sequence $ [ gitBranchIcon
-                          , boldS =<< gitBranchName
-                          , sep "|" =<< gitCommitName
+        promptList <- runMaybeT $ do
+            [branch, descr] <- P.sequence [gitBranchName, gitDescribe]
+            P.sequence $ [ gitBranchIcon
+                          , boldS =<< pure branch
+                          , sep "|" =<< gitCommitName branch descr
                           , sep "|" =<< gitStashCounter
                           , sep "|" =<< gitAheadIcon
                           , sep "|" =<< gitBehindIcon
-                          , sep "|" =<< gitDescribe
+                          , sep "|" =<< pure descr
                           , sep "|" =<< gitStatusIcon False
-                          ] <> [ sep "|" =<< gitListFiles False | not short ])
+                          ] <> [ sep "|" =<< gitListFiles False | not short ]
         return $ maybe "" (\prompt -> "(" <> concat prompt <> ")") promptList
 
 mkPrompt short (Just theme) path =
     withPath path $ do
-        promptList <- runMaybeT
-            (P.sequence $ [ gitBranchIcon
-                          , boldS =<< colorS theme =<< gitBranchName
-                          , sep "|" =<< boldS =<< gitCommitName
+        promptList <- runMaybeT $ do
+            [branch, descr] <- P.sequence [gitBranchName, gitDescribe]
+            P.sequence $ [ gitBranchIcon
+                          , boldS =<< colorS theme =<< pure branch
+                          , sep "|" =<< boldS =<< gitCommitName branch descr
                           , sep "|" =<< boldS =<< gitStashCounter
                           , sep "|" =<< boldS =<< gitAheadIcon
                           , sep "|" =<< boldS =<< gitBehindIcon
-                          , sep "|" =<< gitDescribe
+                          , sep "|" =<< pure descr
                           , sep "|" =<< gitStatusIcon True
-                          ] <> [ sep "|" =<< gitListFiles True | not short])
+                          ] <> [ sep "|" =<< gitListFiles True | not short]
 
         return $ maybe "" (\prompt -> bold <> "(" <> reset <> concat prompt <> bold <> ")" <> reset) promptList
 
@@ -120,15 +122,12 @@ gitBranchName = gitBranchShow <|> gitDescribeExactMatch <|> gitRevParse False
 {-# INLINE gitBranchName #-}
 
 
-gitCommitName :: MaybeIO String
-gitCommitName = gitCommitName' <|> (MaybeT . pure) (Just "")
-    where gitCommitName' :: MaybeIO String
-          gitCommitName' = do
-              name <- gitBranchName
-              cn   <- gitNameRev
-              if name `isInfixOf` cn || cn `isInfixOf` name
-                  then return ""
-                  else return cn
+gitCommitName :: String -> String -> MaybeIO String
+gitCommitName bname descr = do
+    namerev <- gitNameRev
+    if bname `isInfixOf` namerev || namerev `isInfixOf` bname || namerev `isInfixOf` descr
+        then pure ""
+        else pure namerev
 {-# INLINE gitCommitName #-}
 
 
@@ -139,11 +138,13 @@ gitBranchShow = do
                                  else Just (replace "\n" "" xs)
 {-# INLINE gitBranchShow #-}
 
+
 gitDescribeExactMatch :: MaybeIO String
 gitDescribeExactMatch = do
     xs <- liftIO $ git ["describe", "--exact-match"]
     MaybeT . pure $ if null xs then Nothing
                                  else Just (replace "~" "↓" (init xs))
+
 
 gitRevParse :: Bool -> MaybeIO String
 gitRevParse origin = do
