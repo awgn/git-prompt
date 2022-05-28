@@ -231,7 +231,7 @@ data GitIcon = GitIcon {
 
 
 mergeIcons :: [GitIcon] -> String
-mergeIcons = concatMap (renderIcon . (head &&& length)) . groupBy ((==) `on` icon) . sortBy (compare `on` icon)
+mergeIcons = concatMap (renderIcon . (head &&& length)) . groupBy ((==) `on` icon) . sortBy (compare `on` icon) . filter (not.null.icon)
   where renderIcon :: (GitIcon, Int) -> String
         renderIcon (GitIcon Nothing xs, 1)      = xs
         renderIcon (GitIcon Nothing xs, n)      = xs <> show n
@@ -240,7 +240,7 @@ mergeIcons = concatMap (renderIcon . (head &&& length)) . groupBy ((==) `on` ico
 
 
 mkGitIcon :: Bool -> String -> GitIcon
-mkGitIcon c ('D':'D':_) =  GitIcon (c ?? magenta ) "¦"
+mkGitIcon c ('D':'D':_) =  GitIcon (c ?? magenta ) "╌"
 mkGitIcon c ('A':'U':_) =  GitIcon (c ?? green   ) "✛"
 mkGitIcon c ('U':'D':_) =  GitIcon (c ?? magenta ) "-"
 mkGitIcon c ('U':'A':_) =  GitIcon (c ?? cyan    ) "+"
@@ -256,8 +256,8 @@ mkGitIcon c ('R':_  :_) =  GitIcon (c ?? red  ) "ʀ"
 mkGitIcon c ('C':_  :_) =  GitIcon (c ?? cyan ) "©"
 mkGitIcon c ('M':_  :_) =  GitIcon (c ?? cyan ) "⁕"
 mkGitIcon c ('A':_  :_) =  GitIcon (c ?? cyan ) "✛"
-mkGitIcon c ('!':'!':_) =  GitIcon (c ?? reset) "a̶"
-mkGitIcon c ('?':'?':_) =  GitIcon (c ?? reset) "…"
+mkGitIcon c ('!':'!':_) =  GitIcon (c ?? reset) ""  -- ignored items..
+mkGitIcon c ('?':'?':_) =  GitIcon (c ?? reset) ""  -- untracked files ...
 mkGitIcon c  _          =  GitIcon (c ?? reset) ""
 
 
