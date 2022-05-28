@@ -24,7 +24,7 @@ import System.Directory
     ( getCurrentDirectory, setCurrentDirectory )
 import Control.Monad ( when )
 import Control.Monad.Trans ( MonadIO(liftIO) )
-import Control.Monad.Trans.Maybe ( MaybeT(..) )
+import Control.Monad.Trans.Maybe ( MaybeT(..))
 import Control.Arrow ( Arrow((&&&)) )
 
 import qualified Control.Monad.Parallel as P
@@ -37,6 +37,7 @@ import Data.List.Split ( splitOn )
 import Data.Tuple.Select ( Sel2(sel2) )
 
 import Colors
+    ( magenta, blue, cyan, green, red, bold, reset, getColorByName )
 
 type MaybeIO = MaybeT IO
 
@@ -132,22 +133,22 @@ gitCommitName = do
 gitBranchShow :: MaybeIO String
 gitBranchShow = do
     xs <- liftIO $ git ["branch", "--show"]
-    MaybeT $ return $ if null xs then Nothing
+    MaybeT . pure $ if null xs then Nothing
                                  else Just (replace "\n" "" xs)
 {-# INLINE gitBranchShow #-}
 
 gitDescribeExactMatch :: MaybeIO String
 gitDescribeExactMatch = do
     xs <- liftIO $ git ["describe", "--exact-match"]
-    MaybeT $ return $ if null xs then Nothing
+    MaybeT . pure $ if null xs then Nothing
                                  else Just (replace "~" "↓" (init xs))
 
 gitRevParse :: Bool -> MaybeIO String
 gitRevParse origin = do
     xs <- liftIO $ git (args origin)
-    MaybeT $ return $ if null xs then Nothing
+    MaybeT . pure $ if null xs then Nothing
                                  else case filter (/= '\n') (last $ splitOn "/" xs) of
-                                           "HEAD" -> Nothing
+                                           "HEAD" -> Just "⚠ "
                                            ys     -> Just ys
         where args :: Bool -> [String]
               args False = ["rev-parse", "--abbrev-ref", "HEAD"]
@@ -157,7 +158,7 @@ gitRevParse origin = do
 gitNameRev :: MaybeIO String
 gitNameRev = do
     xs <- liftIO $ git ["name-rev", "--name-only", "HEAD"]
-    MaybeT $ return $
+    MaybeT . pure $
         if null xs
             then Nothing
             else Just (foldr (\(o,n) acc -> replace o n acc) (init xs) [("tags/",""),  ("~","↓"), ("remotes/origin/", "ᐲ ") ])
