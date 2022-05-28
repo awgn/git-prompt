@@ -52,8 +52,8 @@ mkPrompt short Nothing path =
                           , sep "|" =<< gitStashCounter
                           , sep "|" =<< gitAheadIcon
                           , sep "|" =<< gitBehindIcon
-                          , sep "|" =<< gitStatusIcon False
                           , sep "|" =<< gitDescribe
+                          , sep "|" =<< gitStatusIcon False
                           ] <> [ sep "|" =<< gitListFiles False | not short ])
         return $ maybe "" (\prompt -> "(" <> concat prompt <> ")") promptList
 
@@ -66,8 +66,8 @@ mkPrompt short (Just theme) path =
                           , sep "|" =<< boldS =<< gitStashCounter
                           , sep "|" =<< boldS =<< gitAheadIcon
                           , sep "|" =<< boldS =<< gitBehindIcon
-                          , sep "|" =<< gitStatusIcon True
                           , sep "|" =<< gitDescribe
+                          , sep "|" =<< gitStatusIcon True
                           ] <> [ sep "|" =<< gitListFiles True | not short])
 
         return $ maybe "" (\prompt -> bold <> "(" <> reset <> concat prompt <> bold <> ")" <> reset) promptList
@@ -165,8 +165,13 @@ gitNameRev = do
 -- 2: gitDescribe
 
 gitDescribe :: MaybeIO String
-gitDescribe = liftIO (git ["describe", "--abbrev=6", "--always", "--all", "--long"]) >>= \xs ->
-    failIfNull xs >> return (filter (/= '\n') xs)
+gitDescribe = liftIO (git ["describe", "--abbrev=8", "--always", "--tag", "--long"]) >>= \xs -> do
+    failIfNull xs
+    let ys = splitOn "-" (filter (/= '\n') xs)
+        tag = intercalate "-" $ take (length ys - 2) ys
+        [com, hash] = drop (length ys - 2) ys
+    return $ tag <> "▴" <> com <> " " <> hash
+
 
 -- 3: gitAheadIcon
 
