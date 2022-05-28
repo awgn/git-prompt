@@ -121,12 +121,14 @@ gitBranchName = gitBranchShow <|> gitDescribeExactMatch <|> gitRevParse False
 
 
 gitCommitName :: MaybeIO String
-gitCommitName = do
-    name <- gitBranchName
-    cn <- gitNameRev
-    if name `isInfixOf` cn || cn `isInfixOf` name
-        then return ""
-        else return cn
+gitCommitName = gitCommitName' <|> (MaybeT . pure) (Just "")
+    where gitCommitName' :: MaybeIO String
+          gitCommitName' = do
+              name <- gitBranchName
+              cn   <- gitNameRev
+              if name `isInfixOf` cn || cn `isInfixOf` name
+                  then return ""
+                  else return cn
 {-# INLINE gitCommitName #-}
 
 
