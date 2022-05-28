@@ -36,7 +36,6 @@ import Data.Function ( on )
 import Data.List.Split ( splitOn )
 import Data.Tuple.Select ( Sel2(sel2) )
 
-
 import Colors
 
 type MaybeIO = MaybeT IO
@@ -47,7 +46,8 @@ mkPrompt short Nothing path =
 
     withPath path $ do
         promptList <- runMaybeT
-            (P.sequence $ [ sep "⎇ " =<< boldS =<< gitBranchName
+            (P.sequence $ [ gitBranchIcon
+                          , boldS =<< gitBranchName
                           , sep "|" =<< gitCommitName
                           , sep "|" =<< gitStashCounter
                           , sep "|" =<< gitAheadIcon
@@ -60,7 +60,8 @@ mkPrompt short Nothing path =
 mkPrompt short (Just theme) path =
     withPath path $ do
         promptList <- runMaybeT
-            (P.sequence $ [ sep "⎇ " =<< boldS =<< colorS theme =<< gitBranchName
+            (P.sequence $ [ gitBranchIcon
+                          , boldS =<< colorS theme =<< gitBranchName
                           , sep "|" =<< boldS =<< gitCommitName
                           , sep "|" =<< boldS =<< gitStashCounter
                           , sep "|" =<< boldS =<< gitAheadIcon
@@ -84,7 +85,7 @@ isNotPrefixOf x y = not $ x `isPrefixOf` y
 {-# INLINE isNotPrefixOf #-}
 
 
-sep:: String -> String -> MaybeIO String
+sep :: String -> String -> MaybeIO String
 sep _ "" = return ""
 sep s xs = return $ s <> xs
 {-# INLINE sep #-}
@@ -102,10 +103,19 @@ colorS color xs = return $ getColorByName color <> xs <> reset
 {-# INLINE colorS #-}
 
 
+gitBranchIcon :: MaybeIO String
+gitBranchIcon = do
+    l <- gitRevParse False
+    r <- gitRevParse True
+    if l == r
+    then return "⟝ "
+    else return "⎇ "
+
 -- 1: gitBranchName
 
+
 gitBranchName :: MaybeIO String
-gitBranchName = gitBranchShow <|> gitDescribeExactMatch <|> gitRevParse
+gitBranchName = gitBranchShow <|> gitDescribeExactMatch <|> gitRevParse False
 {-# INLINE gitBranchName #-}
 
 
@@ -132,19 +142,25 @@ gitDescribeExactMatch = do
     MaybeT $ return $ if null xs then Nothing
                                  else Just (replace "~" "↓" (init xs))
 
-gitRevParse :: MaybeIO String
-gitRevParse = do
-    xs <- liftIO $ git ["rev-parse", "--abbrev-ref", "HEAD"]
+gitRevParse :: Bool -> MaybeIO String
+gitRevParse origin = do
+    xs <- liftIO $ git (args origin)
     MaybeT $ return $ if null xs then Nothing
                                  else case filter (/= '\n') (last $ splitOn "/" xs) of
                                            "HEAD" -> Nothing
                                            ys     -> Just ys
+        where args :: Bool -> [String]
+              args False = ["rev-parse", "--abbrev-ref", "HEAD"]
+              args True  = ["rev-parse", "--abbrev-ref", "origin/HEAD"]
+
 
 gitNameRev :: MaybeIO String
 gitNameRev = do
     xs <- liftIO $ git ["name-rev", "--name-only", "HEAD"]
-    MaybeT $ return $ if null xs then Nothing
-                                 else Just (replace "tags/" "" (replace "~" "↓" (init xs)))
+    MaybeT $ return $
+        if null xs
+            then Nothing
+            else Just (foldr (\(o,n) acc -> replace o n acc) (init xs) [("tags/",""),  ("~","↓"), ("remotes/origin/", "ᐲ ") ])
 
 -- 2: gitDescribe
 
