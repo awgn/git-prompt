@@ -164,7 +164,8 @@ gitNameRev = do
     MaybeT . pure $
         if null xs
             then Nothing
-            else Just $ foldr (\(o,n) acc -> replace o n acc) (init xs) [("tags/",""),  ("~","↓"), ("remotes/origin/", "ᐲ "), ("remotes/", "")]
+            else Just $ foldr (\(o,n) acc -> replace o n acc) (init xs) [("tags/",""),  ("~","↓"), ("remotes/", "ʀ "), ("remotes/origin/", "ᐲ ")]
+
 
 -- 2: gitDescribe
 
@@ -175,8 +176,8 @@ gitDescribe = liftIO (git ["describe", "--abbrev=8", "--always", "--tag", "--lon
         tag = intercalate "-" $ take (length ys - 2) ys
         [com, hash] = drop (length ys - 2) ys
     if com == "0"
-        then pure $ bold <> tag <> reset <> " " <> hash
-        else pure $ bold <> tag <> "▴" <> com <> " " <> hash
+        then pure $ bold <> tag <> reset <> "|" <> hash
+        else pure $ bold <> tag <> "▴" <> com <> reset <> "|" <> hash
 
 
 -- 3: gitAheadIcon
