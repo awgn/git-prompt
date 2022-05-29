@@ -16,6 +16,8 @@
 -- Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 --
 
+{-# LANGUAGE MultiWayIf #-}
+
 module Git ( mkPrompt ) where
 
 import System.Process ( readProcessWithExitCode )
@@ -110,11 +112,9 @@ gitBranchIcon :: MaybeIO String
 gitBranchIcon = do
     l <- gitRevParse False
     r <- gitRevParse True
-    if l == r
-    then return "⟝ "
-    else return "⎇ "
-
--- 1: gitBranchName
+    if | l == "HEAD" -> pure "⚠ "
+       | l == r      -> pure "⟝ "
+       | otherwise   -> pure "⎇ "
 
 
 gitBranchName :: MaybeIO String
@@ -149,13 +149,13 @@ gitDescribeExactMatch = do
 gitRevParse :: Bool -> MaybeIO String
 gitRevParse origin = do
     xs <- liftIO $ git (args origin)
-    MaybeT . pure $ if null xs then Nothing
-                                 else case filter (/= '\n') (last $ splitOn "/" xs) of
-                                           "HEAD" -> Just "⚠ "
-                                           ys     -> Just ys
-        where args :: Bool -> [String]
-              args False = ["rev-parse", "--abbrev-ref", "HEAD"]
-              args True  = ["rev-parse", "--abbrev-ref", "origin/HEAD"]
+    MaybeT . pure $
+        if null xs
+            then Nothing
+            else Just $ filter (/= '\n') (last $ splitOn "/" xs)
+    where args :: Bool -> [String]
+          args False = ["rev-parse", "--abbrev-ref", "HEAD"]
+          args True  = ["rev-parse", "--abbrev-ref", "origin/HEAD"]
 
 
 gitNameRev :: MaybeIO String
@@ -167,8 +167,6 @@ gitNameRev = do
             else Just $ foldr (\(o,n) acc -> replace o n acc) (init xs) [("tags/",""),  ("~","↓"), ("remotes/", "ʀ "), ("remotes/origin/", "ᐲ ")]
 
 
--- 2: gitDescribe
-
 gitDescribe :: MaybeIO String
 gitDescribe = liftIO (git ["describe", "--abbrev=8", "--always", "--tag", "--long"]) >>= \xs -> do
     failIfNull xs
@@ -179,8 +177,6 @@ gitDescribe = liftIO (git ["describe", "--abbrev=8", "--always", "--tag", "--lon
         then pure $ bold <> tag <> reset <> "|" <> hash
         else pure $ bold <> tag <> "▴" <> com <> reset <> "|" <> hash
 
-
--- 3: gitAheadIcon
 
 gitAheadIcon :: MaybeIO String
 gitAheadIcon = do
@@ -197,27 +193,17 @@ gitBehindIcon = do
                then ""
                else "↓" <> show(read xs :: Integer))
 
--- 4: gitStatusIcon
 
 gitStatusIcon :: Bool -> MaybeIO String
 gitStatusIcon color = liftIO $ mergeIcons . map (mkGitIcon color) . lines <$> git ["status", "--porcelain"]
 {-# INLINE gitStatusIcon #-}
 
 
--- 5: gitStashCounter:
-
 gitStashCounter:: MaybeIO String
 gitStashCounter = do
     n <- liftIO $ length . lines <$> git ["stash", "list"]
     if n == 0 then return ""
               else return $ "≡" <> show n
-
--- 6: gitListFiles
-
-takeString :: Int -> [String] -> [String]
-takeString n xs | length xs <= n = xs
-                | otherwise      = take n xs <> ["…"]
-{-# INLINE takeString #-}
 
 
 gitListFiles :: Bool -> MaybeIO String
@@ -228,6 +214,13 @@ gitListFiles bl = liftIO $ do
     return $ if not bl || null r
                 then r
                 else bold <> r <> reset
+
+
+takeString :: Int -> [String] -> [String]
+takeString n xs | length xs <= n = xs
+                | otherwise      = take n xs <> ["…"]
+{-# INLINE takeString #-}
+
 
 type Color = String
 
