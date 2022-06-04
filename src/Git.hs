@@ -50,13 +50,13 @@ mkPrompt short theme path =
             [branch, descr] <- P.sequence [gitBranchName, gitDescribe]
             P.sequence $ [ gitBranchIcon
                          , gitStatusIcon theme
+                         , sep "|" =<< boldS =<< gitStashCounter
                          , sep "|" =<< boldS =<< colorS theme =<< pure branch
                          , sep "|" =<< boldS =<< gitCommitName branch descr
-                         , sep "|" =<< boldS =<< gitStashCounter
                          , sep "|" =<< boldS =<< gitAheadIcon
                          , sep "|" =<< boldS =<< gitBehindIcon
                          , sep "|" =<< pure descr
-                         ] <> [ sep "|" =<< gitListFiles True | not short]
+                         ] <> [ sep "|" =<< gitListFiles (if short then 5 else 10)]
 
         return $ maybe "" (\prompt -> bold <> "(" <> reset <> concat prompt <> bold <> ")" <> reset) promptList
 
@@ -190,14 +190,12 @@ gitStashCounter = do
               else return $ "≡" <> show n
 
 
-gitListFiles :: Bool -> MaybeIO String
-gitListFiles bl = liftIO $ do
+gitListFiles ::  Int -> MaybeIO String
+gitListFiles n = liftIO $ do
     ls <- lines <$> git ["status", "--porcelain"]
-    let xs = filter ("??" `isNotPrefixOf`) ls
-    let r = intercalate "," . takeString 4 . filter (not.null) . map (takeFileName . drop 3) $ xs
-    return $ if not bl || null r
-                then r
-                else bold <> r <> reset
+    let xs = filter (\x -> "??" `isNotPrefixOf` x && "!!" `isNotPrefixOf` x) ls
+    let r = intercalate "," . takeString n . filter (not.null) . map (takeFileName . drop 3) $ xs
+    return $ bold <> r <> reset
 
 
 takeString :: Int -> [String] -> [String]
