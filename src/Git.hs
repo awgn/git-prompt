@@ -187,7 +187,7 @@ gitStashCounter:: MaybeIO String
 gitStashCounter = do
     n <- liftIO $ length . lines <$> git ["stash", "list"]
     if n == 0 then return ""
-              else return $ "≡" <> show n
+              else return $ "≡" <> superscript (show n)
 
 
 gitListFiles ::  Int -> MaybeIO String
@@ -200,7 +200,7 @@ gitListFiles n = liftIO $ do
 
 takeString :: Int -> [String] -> [String]
 takeString n xs | length xs <= n = xs
-                | otherwise      = take n xs <> ["…"]
+                | otherwise = take n xs <> ["…"]
 {-# INLINE takeString #-}
 
 
@@ -214,22 +214,24 @@ mergeIcons :: [GitIcon] -> String
 mergeIcons = concatMap (renderIcon . (head &&& length)) . groupBy ((==) `on` icon) . sortBy (compare `on` icon) . filter (not.null.icon)
   where renderIcon :: (GitIcon, Int) -> String
         renderIcon (GitIcon color xs, 1) = color <> xs <> reset
-        renderIcon (GitIcon color xs, n) = color <> xs <> (superscript <$> show n) <> reset
+        renderIcon (GitIcon color xs, n) = color <> xs <> superscript (show n) <> reset
 
+superscript :: String -> String
+superscript = (superscript' <$>)
+{-# INLINE  superscript #-}
 
-superscript :: Char -> Char
-superscript '1' = '¹'
-superscript '2' = '²'
-superscript '3' = '³'
-superscript '4' = '⁴'
-superscript '5' = '⁵'
-superscript '6' = '⁶'
-superscript '7' = '⁷'
-superscript '8' = '⁸'
-superscript '9' = '⁹'
-superscript '0' = '⁰'
-superscript x = x
-
+superscript' :: Char -> Char
+superscript' '1' = '¹' -- 'ⁱ'
+superscript' '2' = '²'
+superscript' '3' = '³'
+superscript' '4' = '⁴'
+superscript' '5' = '⁵'
+superscript' '6' = '⁶'
+superscript' '7' = '⁷'
+superscript' '8' = '⁸'
+superscript' '9' = '⁹'
+superscript' '0' = '⁰'
+superscript' x = x
 
 mkGitIcon :: String -> String -> GitIcon
 mkGitIcon c (' ':'M':_) =  GitIcon c "•"
