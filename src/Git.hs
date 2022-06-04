@@ -234,7 +234,7 @@ superscript x = x
 
 
 mkGitIcon :: String -> String -> GitIcon
-mkGitIcon c (' ':'M':_) =  GitIcon c "±"
+mkGitIcon c (' ':'M':_) =  GitIcon c "•"
 mkGitIcon c (' ':'D':_) =  GitIcon c "-"
 mkGitIcon c (' ':'A':_) =  GitIcon c "+"
 mkGitIcon c (' ':'C':_) =  GitIcon c "ᶜ"
@@ -254,6 +254,8 @@ mkGitIcon c ('T': _ :_) =  GitIcon (bold <> c) "¿"
 mkGitIcon c ('A':'D':_) =  GitIcon (bold <> c) "∓"
 mkGitIcon c ('A':'M':_) =  GitIcon (bold <> c) "∔"
 mkGitIcon c ('A': _ :_) =  GitIcon (bold <> c) "✛"
+mkGitIcon c ('D':'A':_) =  GitIcon (bold <> c) "±"
+mkGitIcon c ('D':'M':_) =  GitIcon (bold <> c) "߸"
 mkGitIcon c ('D': _ :_) =  GitIcon (bold <> c) "—"
 mkGitIcon c ('C': _ :_) =  GitIcon (bold <> c) "©"
 mkGitIcon c ('R': _ :_) =  GitIcon (bold <> c) "ʀ"
