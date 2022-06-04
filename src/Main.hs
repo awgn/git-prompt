@@ -32,6 +32,7 @@ import Options.Applicative
 import Data.Version (showVersion)
 
 import GHC.IO.Encoding ( utf8, setLocaleEncoding )
+import Data.Maybe ( fromMaybe )
 
 main :: IO ()
 main = execParser opts >>= mainRun
@@ -41,4 +42,4 @@ main = execParser opts >>= mainRun
 mainRun :: Options -> IO ()
 mainRun Options{..}
   | version         = putStrLn $ showVersion G.version
-  | otherwise       = setLocaleEncoding utf8 *> Git.mkPrompt shortMode themeColor runPath >>= putStrLn
+  | otherwise       = setLocaleEncoding utf8 *> Git.mkPrompt shortMode (fromMaybe "black" themeColor) runPath >>= putStrLn

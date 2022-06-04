@@ -38,42 +38,25 @@ import Data.Function ( on )
 import Data.List.Split ( splitOn )
 import Data.Tuple.Select ( Sel2(sel2) )
 
-import Colors
-    ( magenta, blue, cyan, green, red, bold, reset, getColorByName )
+import Colors ( bold, reset, getColorByName )
 
 type MaybeIO = MaybeT IO
 
 
-mkPrompt :: Bool -> Maybe String -> Maybe FilePath -> IO String
-mkPrompt short Nothing path =
-
+mkPrompt :: Bool -> String -> Maybe FilePath -> IO String
+mkPrompt short theme path =
     withPath path $ do
         promptList <- runMaybeT $ do
             [branch, descr] <- P.sequence [gitBranchName, gitDescribe]
             P.sequence $ [ gitBranchIcon
-                          , boldS =<< pure branch
-                          , sep "|" =<< gitCommitName branch descr
-                          , sep "|" =<< gitStashCounter
-                          , sep "|" =<< gitAheadIcon
-                          , sep "|" =<< gitBehindIcon
-                          , sep "|" =<< pure descr
-                          , sep "|" =<< gitStatusIcon False
-                          ] <> [ sep "|" =<< gitListFiles False | not short ]
-        return $ maybe "" (\prompt -> "(" <> concat prompt <> ")") promptList
-
-mkPrompt short (Just theme) path =
-    withPath path $ do
-        promptList <- runMaybeT $ do
-            [branch, descr] <- P.sequence [gitBranchName, gitDescribe]
-            P.sequence $ [ gitBranchIcon
-                          , boldS =<< colorS theme =<< pure branch
-                          , sep "|" =<< boldS =<< gitCommitName branch descr
-                          , sep "|" =<< boldS =<< gitStashCounter
-                          , sep "|" =<< boldS =<< gitAheadIcon
-                          , sep "|" =<< boldS =<< gitBehindIcon
-                          , sep "|" =<< pure descr
-                          , sep "|" =<< gitStatusIcon True
-                          ] <> [ sep "|" =<< gitListFiles True | not short]
+                         , gitStatusIcon theme
+                         , sep "|" =<< boldS =<< colorS theme =<< pure branch
+                         , sep "|" =<< boldS =<< gitCommitName branch descr
+                         , sep "|" =<< boldS =<< gitStashCounter
+                         , sep "|" =<< boldS =<< gitAheadIcon
+                         , sep "|" =<< boldS =<< gitBehindIcon
+                         , sep "|" =<< pure descr
+                         ] <> [ sep "|" =<< gitListFiles True | not short]
 
         return $ maybe "" (\prompt -> bold <> "(" <> reset <> concat prompt <> bold <> ")" <> reset) promptList
 
@@ -194,8 +177,9 @@ gitBehindIcon = do
                else "↓" <> show(read xs :: Integer))
 
 
-gitStatusIcon :: Bool -> MaybeIO String
-gitStatusIcon color = liftIO $ mergeIcons . map (mkGitIcon color) . lines <$> git ["status", "--porcelain"]
+gitStatusIcon :: String -> MaybeIO String
+gitStatusIcon theme = liftIO $ mergeIcons . map (mkGitIcon color) . lines <$> git ["status", "--porcelain"]
+    where color = getColorByName  theme
 {-# INLINE gitStatusIcon #-}
 
 
@@ -222,10 +206,8 @@ takeString n xs | length xs <= n = xs
 {-# INLINE takeString #-}
 
 
-type Color = String
-
 data GitIcon = GitIcon {
-        _colorIcon :: Maybe Color
+        _colorIcon :: String
         , icon     :: String
     } deriving (Eq, Ord)
 
@@ -233,38 +215,52 @@ data GitIcon = GitIcon {
 mergeIcons :: [GitIcon] -> String
 mergeIcons = concatMap (renderIcon . (head &&& length)) . groupBy ((==) `on` icon) . sortBy (compare `on` icon) . filter (not.null.icon)
   where renderIcon :: (GitIcon, Int) -> String
-        renderIcon (GitIcon Nothing xs, 1)      = xs
-        renderIcon (GitIcon Nothing xs, n)      = xs <> show n
-        renderIcon (GitIcon (Just color) xs, 1) = bold <> color <> xs <> reset
-        renderIcon (GitIcon (Just color) xs, n) = bold <> color <> xs <> show n <> reset
+        renderIcon (GitIcon color xs, 1) = color <> xs <> reset
+        renderIcon (GitIcon color xs, n) = color <> xs <> (superscript <$> show n) <> reset
 
 
-mkGitIcon :: Bool -> String -> GitIcon
-mkGitIcon c ('D':'D':_) =  GitIcon (c ?? magenta ) "╌"
-mkGitIcon c ('A':'U':_) =  GitIcon (c ?? green   ) "✛"
-mkGitIcon c ('U':'D':_) =  GitIcon (c ?? magenta ) "-"
-mkGitIcon c ('U':'A':_) =  GitIcon (c ?? cyan    ) "+"
-mkGitIcon c ('A':'A':_) =  GitIcon (c ?? green   ) "ǂ"
-mkGitIcon c ('U':'U':_) =  GitIcon (c ?? blue    ) "☢"
-
-mkGitIcon c (' ':'M':_) =  GitIcon (c ?? blue ) "±"
-mkGitIcon c (_  :'D':_) =  GitIcon (c ?? red  ) "-"
-mkGitIcon c ('M':' ':_) =  GitIcon (c ?? green) "⁕"
-mkGitIcon c ('A':' ':_) =  GitIcon (c ?? green) "✛"
-mkGitIcon c ('D':_  :_) =  GitIcon (c ?? red  ) "—"
-mkGitIcon c ('R':_  :_) =  GitIcon (c ?? red  ) "ʀ"
-mkGitIcon c ('C':_  :_) =  GitIcon (c ?? cyan ) "©"
-mkGitIcon c ('M':_  :_) =  GitIcon (c ?? cyan ) "⁕"
-mkGitIcon c ('A':_  :_) =  GitIcon (c ?? cyan ) "✛"
-mkGitIcon c ('!':'!':_) =  GitIcon (c ?? reset) ""  -- ignored items..
-mkGitIcon c ('?':'?':_) =  GitIcon (c ?? reset) ""  -- untracked files ...
-mkGitIcon c  _          =  GitIcon (c ?? reset) ""
+superscript :: Char -> Char
+superscript '1' = '¹'
+superscript '2' = '²'
+superscript '3' = '³'
+superscript '4' = '⁴'
+superscript '5' = '⁵'
+superscript '6' = '⁶'
+superscript '7' = '⁷'
+superscript '8' = '⁸'
+superscript '9' = '⁹'
+superscript '0' = '⁰'
+superscript x = x
 
 
-(??) :: Bool -> a -> Maybe a
-True  ?? a = Just a
-False ?? _ = Nothing
-{-# INLINE (??) #-}
+mkGitIcon :: String -> String -> GitIcon
+mkGitIcon c (' ':'M':_) =  GitIcon c "±"
+mkGitIcon c (' ':'D':_) =  GitIcon c "-"
+mkGitIcon c (' ':'A':_) =  GitIcon c "+"
+mkGitIcon c (' ':'C':_) =  GitIcon c "ᶜ"
+mkGitIcon c (' ':'R':_) =  GitIcon c "ᵣ"
+
+mkGitIcon c ('D':'D':_) =  GitIcon (bold <> c) "╌"
+mkGitIcon c ('A':'U':_) =  GitIcon (bold <> c) "✛"
+mkGitIcon c ('U':'D':_) =  GitIcon (bold <> c) "-"
+mkGitIcon c ('U':'A':_) =  GitIcon (bold <> c) "⊕"
+mkGitIcon c ('D':'U':_) =  GitIcon (bold <> c) "-"
+mkGitIcon c ('A':'A':_) =  GitIcon (bold <> c) "ǂ"
+mkGitIcon c ('U':'U':_) =  GitIcon (bold <> c) "☢"
+
+mkGitIcon c ('M':'D':_) =  GitIcon (bold <> c) "✫"
+mkGitIcon c ('M': _ :_) =  GitIcon (bold <> c) "★"
+mkGitIcon c ('T': _ :_) =  GitIcon (bold <> c) "¿"
+mkGitIcon c ('A':'D':_) =  GitIcon (bold <> c) "∓"
+mkGitIcon c ('A':'M':_) =  GitIcon (bold <> c) "∔"
+mkGitIcon c ('A': _ :_) =  GitIcon (bold <> c) "✛"
+mkGitIcon c ('D': _ :_) =  GitIcon (bold <> c) "—"
+mkGitIcon c ('C': _ :_) =  GitIcon (bold <> c) "©"
+mkGitIcon c ('R': _ :_) =  GitIcon (bold <> c) "ʀ"
+
+mkGitIcon _ ('!':'!':_) =  GitIcon "" ""  -- ignored items...
+mkGitIcon _ ('?':'?':_) =  GitIcon "" ""  -- untracked files ...
+mkGitIcon _  _          =  GitIcon "" ""
 
 
 replace :: String -> String -> String -> String

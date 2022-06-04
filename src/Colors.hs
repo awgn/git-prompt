@@ -19,8 +19,9 @@
 module Colors (module Colors) where
 
 import System.Console.ANSI
+import Data.List.Split (splitOn)
 
-magenta, blue, red, cyan, green, bold, reset, yellow, white :: String
+magenta, blue, red, cyan, green, bold, reset, yellow, white, acqua, orange :: String
 
 magenta = setSGRCode [SetColor Foreground Vivid Magenta]
 blue    = setSGRCode [SetColor Foreground Vivid Blue]
@@ -29,6 +30,8 @@ green   = setSGRCode [SetColor Foreground Vivid Green]
 red     = setSGRCode [SetColor Foreground Vivid Red]
 yellow  = setSGRCode [SetColor Foreground Vivid Yellow]
 white   = setSGRCode [SetColor Foreground Vivid White]
+orange  = setSGRCode [SetConsoleIntensity BoldIntensity, SetPaletteColor Foreground $ xterm6LevelRGB 5 2 0]
+acqua   = setSGRCode [SetConsoleIntensity BoldIntensity, SetPaletteColor Foreground $ xterm6LevelRGB 2 5 4]
 bold    = setSGRCode [SetConsoleIntensity BoldIntensity]
 reset   = setSGRCode []
 
@@ -41,5 +44,9 @@ getColorByName "cyan"    = cyan
 getColorByName "magenta" = magenta
 getColorByName "yellow"  = yellow
 getColorByName "white"   = white
-getColorByName _         = reset
-
+getColorByName "orange"  = orange
+getColorByName "acqua"   = acqua
+getColorByName "black"   = ""
+getColorByName xs =  case splitOn ":" xs of
+    [r, g, b] -> setSGRCode [SetConsoleIntensity BoldIntensity, SetPaletteColor Foreground $ xterm6LevelRGB (read r) (read g) (read b)]
+    _      -> reset
