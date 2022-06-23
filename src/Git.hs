@@ -153,12 +153,13 @@ gitNameRev = do
 gitDescribe :: MaybeIO String
 gitDescribe = liftIO (git ["describe", "--abbrev=8", "--always", "--tag", "--long"]) >>= \xs -> do
     failIfNull xs
-    let ys = splitOn "-" (filter (/= '\n') xs)
-        tag = intercalate "-" $ take (length ys - 2) ys
-        [com, hash] = drop (length ys - 2) ys
-    if com == "0"
-        then pure $ bold <> tag <> reset <> "|" <> hash
-        else pure $ bold <> tag <> "▴" <> com <> reset <> "|" <> hash
+    case splitOn "-" (filter (/= '\n') xs) of
+        []                  ->  pure ""
+        [tag]               ->  pure $ bold <> tag <> reset
+        [tag, "0"]          ->  pure $ bold <> tag <> reset
+        [tag, n]            ->  pure $ bold <> tag <> "▴" <> n <> reset
+        [tag, "0", hash]    ->  pure $ bold <> tag <> reset <> "|" <> hash
+        tag : n : hash : _  ->  pure $ bold <> tag <> "▴" <> n <> reset <> "|" <> hash
 
 
 gitAheadIcon :: MaybeIO String
