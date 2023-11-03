@@ -1,5 +1,5 @@
 name:                GitPrompt
-version:             2.9.1
+version:             2.10.0
 -- synopsis:
 -- description:
 homepage:            https://github.com/awgn/GitPrompt
@@ -17,6 +17,7 @@ executable GitPrompt
   hs-source-dirs:      src
   main-is:             Main.hs
   other-modules:       Git
+                       Netns
                        Colors
                        Options
                        Paths_GitPrompt
