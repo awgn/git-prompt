@@ -16,6 +16,7 @@ data Options = Options
       runPath           :: Maybe String
     , themeColor        :: Maybe String
     , shortMode         :: Bool
+    , showNetns         :: Bool
     , version           :: Bool
 
     } deriving (Show)
@@ -39,6 +40,11 @@ parseOptions = do
             ( long "short"
            <> short 's'
            <> help "Use short mode")
+
+     showNetns <- switch
+            ( long "netns"
+           <> short 'n'
+           <> help "Show netns associated with the current shell")
 
      version <- switch
             ( long "version"

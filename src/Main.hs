@@ -22,17 +22,27 @@ module Main (module Main) where
 
 -- import System.Environment
 
-import qualified Git
+import qualified Git as G
+import qualified Netns as N 
 import qualified Paths_GitPrompt as G
 
 import Options ( parseOptions, Options(..) )
 import Options.Applicative
-    ( fullDesc, header, info, execParser, helper )
+    ( fullDesc, header, info, execParser, helper, Applicative (liftA2) )
 
 import Data.Version (showVersion)
 
 import GHC.IO.Encoding ( utf8, setLocaleEncoding )
 import Data.Maybe ( fromMaybe )
+
+import Control.Monad.Trans.Maybe ( MaybeT(..))
+
+import qualified Control.Monad.Parallel as P
+import System.Directory (getCurrentDirectory, setCurrentDirectory)
+import Control.Exception ( bracket )
+import Colors ( bold, getColorByName, reset )
+
+type MaybeIO = MaybeT IO
 
 main :: IO ()
 main = execParser opts >>= mainRun
@@ -42,4 +52,54 @@ main = execParser opts >>= mainRun
 mainRun :: Options -> IO ()
 mainRun Options{..}
   | version         = putStrLn $ showVersion G.version
-  | otherwise       = setLocaleEncoding utf8 *> Git.mkPrompt shortMode (fromMaybe "black" themeColor) runPath >>= putStrLn
+  | otherwise       = setLocaleEncoding utf8 *> mkPrompt showNetns shortMode (fromMaybe "black" themeColor) runPath >>= putStrLn
+
+
+mkPrompt :: Bool -> Bool -> String -> Maybe FilePath -> IO String
+mkPrompt netns short theme path =
+    withPath path $ do
+        promptNsList  <- if netns 
+            then runMaybeT $ P.sequence [sep "⁅" =<< N.netNamespace]
+            else pure Nothing
+
+        promptGitList <- runMaybeT $ do 
+            [branch, descr] <- P.sequence [G.gitBranchName, G.gitDescribe]
+            
+            P.sequence $ [ sep " " =<< G.gitBranchIcon
+                         , sep "|" =<< G.gitStatusIcon theme
+                         , sep "|" =<< boldS =<< G.gitStashCounter
+                         , sep "|" =<< boldS =<< colorS theme =<< pure branch
+                         , sep "|" =<< boldS =<< G.gitCommitName branch descr
+                         , sep "|" =<< boldS =<< G.gitAheadIcon
+                         , sep "|" =<< boldS =<< G.gitBehindIcon
+                         , sep "|" =<< pure descr
+                         ] <> [ sep "|" =<< G.gitListFiles (if short then 5 else 10)]
+
+        return $ maybe "" concat promptNsList <>
+                 maybe "" concat promptGitList
+
+
+withPath :: Maybe FilePath -> IO a -> IO a
+withPath Nothing action = action
+withPath (Just repo) action = getCurrentDirectory >>= (\pwd -> bracket
+                                                         (setCurrentDirectory repo)
+                                                         (\_ -> setCurrentDirectory pwd)
+                                                         (const action))
+
+
+sep :: String -> String -> MaybeIO String
+sep _ "" = return ""
+sep s xs = return $ s <> xs
+{-# INLINE sep #-}
+
+
+boldS :: (Monad m) => String -> m String
+boldS "" = return ""
+boldS xs = return $ bold <> xs <> reset
+{-# INLINE boldS #-}
+
+
+colorS :: (Monad m) => String -> String -> m String
+colorS _ "" = return ""
+colorS color xs = return $ getColorByName color <> xs <> reset
+{-# INLINE colorS #-}

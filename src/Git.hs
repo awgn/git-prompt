@@ -18,20 +18,27 @@
 
 {-# LANGUAGE MultiWayIf #-}
 
-module Git ( mkPrompt ) where
+module Git (
+    gitBranchIcon
+  , gitStatusIcon
+  , gitStashCounter
+  , gitCommitName
+  , gitAheadIcon
+  , gitBehindIcon
+  , gitListFiles
+  , gitBranchName
+  , gitDescribe
+
+) where
 
 import System.Process ( readProcessWithExitCode )
 import System.FilePath ( takeFileName )
-import System.Directory
-    ( getCurrentDirectory, setCurrentDirectory )
 import Control.Monad ( when )
 import Control.Monad.Trans ( MonadIO(liftIO) )
 import Control.Monad.Trans.Maybe ( MaybeT(..))
 import Control.Arrow ( Arrow((&&&)) )
 
-import qualified Control.Monad.Parallel as P
 import Control.Applicative ( Alternative((<|>)) )
-import Control.Exception ( bracket )
 import Data.List ( sortBy, isPrefixOf, isInfixOf, groupBy, intercalate )
 
 import Data.Function ( on )
@@ -40,55 +47,8 @@ import Data.Tuple.Select ( Sel2(sel2) )
 
 import Colors ( bold, reset, getColorByName )
 
+
 type MaybeIO = MaybeT IO
-
-
-mkPrompt :: Bool -> String -> Maybe FilePath -> IO String
-mkPrompt short theme path =
-    withPath path $ do
-        promptList <- runMaybeT $ do
-            [branch, descr] <- P.sequence [gitBranchName, gitDescribe]
-            P.sequence $ [ gitBranchIcon
-                         , gitStatusIcon theme
-                         , sep "|" =<< boldS =<< gitStashCounter
-                         , sep "|" =<< boldS =<< colorS theme =<< pure branch
-                         , sep "|" =<< boldS =<< gitCommitName branch descr
-                         , sep "|" =<< boldS =<< gitAheadIcon
-                         , sep "|" =<< boldS =<< gitBehindIcon
-                         , sep "|" =<< pure descr
-                         ] <> [ sep "|" =<< gitListFiles (if short then 5 else 10)]
-
-        return $ maybe "" (\prompt -> bold <> "(" <> reset <> concat prompt <> bold <> ")" <> reset) promptList
-
-
-withPath :: Maybe FilePath -> IO a -> IO a
-withPath Nothing action = action
-withPath (Just repo) action = getCurrentDirectory >>= (\pwd -> bracket
-                                                         (setCurrentDirectory repo)
-                                                         (\_ -> setCurrentDirectory pwd)
-                                                         (const action))
-
-isNotPrefixOf :: Eq a => [a] -> [a] -> Bool
-isNotPrefixOf x y = not $ x `isPrefixOf` y
-{-# INLINE isNotPrefixOf #-}
-
-
-sep :: String -> String -> MaybeIO String
-sep _ "" = return ""
-sep s xs = return $ s <> xs
-{-# INLINE sep #-}
-
-
-boldS :: (Monad m) => String -> m String
-boldS "" = return ""
-boldS xs = return $ bold <> xs <> reset
-{-# INLINE boldS #-}
-
-
-colorS :: (Monad m) => String -> String -> m String
-colorS _ "" = return ""
-colorS color xs = return $ getColorByName color <> xs <> reset
-{-# INLINE colorS #-}
 
 
 gitBranchIcon :: MaybeIO String
@@ -279,3 +239,10 @@ git arg = sel2 <$> readProcessWithExitCode "git" arg []
 failIfNull :: String -> MaybeIO ()
 failIfNull xs = when (null xs) (fail "null")
 {-# INLINE failIfNull #-}
+
+
+isNotPrefixOf :: Eq a => [a] -> [a] -> Bool
+isNotPrefixOf x y = not $ x `isPrefixOf` y
+{-# INLINE isNotPrefixOf #-}
+
+
