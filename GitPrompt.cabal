@@ -13,6 +13,11 @@ build-type:          Simple
 cabal-version:       >=1.10
 extra-source-files:  README.md
 
+flag StaticBuild {
+    Description: "Enable static build"
+    Default: False
+}
+
 executable GitPrompt
   hs-source-dirs:      src
   main-is:             Main.hs
@@ -40,4 +45,25 @@ executable GitPrompt
                        -fwrite-ide-info
                        -hiedir=.hie
                        -threaded
+                       -optl-static -optl-pthread
                        -rtsopts "-with-rtsopts=-N -qm"
+
+
+  if flag (StaticBuild) {
+    ghc-options:       -O2
+                       -Wall
+                       -funbox-strict-fields
+                       -fwrite-ide-info
+                       -hiedir=.hie
+                       -threaded
+                       -optl-static -optl-pthread
+
+  }
+  else {
+    ghc-options:       -O2
+                       -Wall
+                       -funbox-strict-fields
+                       -fwrite-ide-info
+                       -hiedir=.hie
+                       -threaded
+  }

@@ -25,6 +25,20 @@ stack install
 This will build and install the binary `GitPrompt` in either ~/.cabal/bin/ or
 ~/.local/bin/ directory.
 
+Building GitPrompt Statically
+-----------------------------
+
+To statically build GitPrompt, you can use the following command:
+
+```
+stack build --flag GitPrompt:StaticBuild
+stack install
+```
+
+This command will instruct Stack to build GitPrompt with the StaticBuild flag, which will create a static binary. 
+The binary will include all necessary dependencies, making it more self-contained and easier to distribute.
+
+
 Usage
 -----
 
