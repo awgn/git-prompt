@@ -23,7 +23,7 @@ module Main (module Main) where
 -- import System.Environment
 
 import qualified Git as G
-import qualified Netns as N 
+import qualified Netns as N
 import qualified Paths_GitPrompt as G
 
 import Options ( parseOptions, Options(..) )
@@ -58,14 +58,14 @@ mainRun Options{..}
 mkPrompt :: Bool -> Bool -> String -> Maybe FilePath -> IO String
 mkPrompt netns short theme path =
     withPath path $ do
-        promptNsList  <- if netns 
-            then runMaybeT $ P.sequence [sep "⁅" =<< N.netNamespace]
+        promptNsList  <- if netns
+            then runMaybeT $ P.sequence [sep "⁅" =<< (<> " ") <$> N.netNamespace]
             else pure Nothing
 
-        promptGitList <- runMaybeT $ do 
+        promptGitList <- runMaybeT $ do
             [branch, descr] <- P.sequence [G.gitBranchName, G.gitDescribe]
-            
-            P.sequence $ [ sep " " =<< G.gitBranchIcon
+
+            P.sequence $ [ G.gitBranchIcon
                          , sep "|" =<< G.gitStatusIcon theme
                          , sep "|" =<< boldS =<< G.gitStashCounter
                          , sep "|" =<< boldS =<< colorS theme =<< pure branch
@@ -73,7 +73,8 @@ mkPrompt netns short theme path =
                          , sep "|" =<< boldS =<< G.gitAheadIcon
                          , sep "|" =<< boldS =<< G.gitBehindIcon
                          , sep "|" =<< pure descr
-                         ] <> [ sep "|" =<< G.gitListFiles (if short then 5 else 10)]
+                         ] <>
+                         [ sep "|" =<< G.gitListFiles (if short then 5 else 10)]
 
         return $ maybe "" concat promptNsList <>
                  maybe "" concat promptGitList
