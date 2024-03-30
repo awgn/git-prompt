@@ -27,8 +27,7 @@ import qualified Netns as N
 import qualified Paths_GitPrompt as G
 
 import Options ( parseOptions, Options(..) )
-import Options.Applicative
-    ( fullDesc, header, info, execParser, helper, Applicative (liftA2) )
+import Options.Applicative hiding (action, short)
 
 import Data.Version (showVersion)
 
@@ -59,13 +58,13 @@ mkPrompt :: Bool -> Bool -> String -> Maybe FilePath -> IO String
 mkPrompt netns short theme path =
     withPath path $ do
         promptNsList  <- if netns
-            then runMaybeT $ P.sequence [sep "⁅" =<< (<> " ") <$> N.netNamespace]
+            then runMaybeT $ P.sequence [sep "⁅" =<< N.netNamespace]
             else pure Nothing
 
         promptGitList <- runMaybeT $ do
             [branch, descr] <- P.sequence [G.gitBranchName, G.gitDescribe]
 
-            P.sequence $ [ G.gitBranchIcon
+            P.sequence $ [ sep " " =<< G.gitBranchIcon
                          , sep "|" =<< G.gitStatusIcon theme
                          , sep "|" =<< boldS =<< G.gitStashCounter
                          , sep "|" =<< boldS =<< colorS theme =<< pure branch
